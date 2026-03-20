@@ -40,6 +40,15 @@ The OpenClaw-compatible skill bundle lives in:
 
 Publish that folder to ClawHub if you want agents to discover and use SocialClaw through a hosted skill.
 
+## Publishing
+
+This public repo is the only npm publish source for the `socialclaw` package.
+
+```bash
+cd /Users/nardibraho/Desktop/socialclaw-public
+npm publish --access public
+```
+
 ## Notes
 
 - This public repo does not include the private SocialClaw backend.

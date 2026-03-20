@@ -36,7 +36,8 @@
   },
   "scripts": {
     "test": "node --check src/index.mjs",
-    "pack:check": "npm pack"
+    "pack:check": "npm pack",
+    "publish:package": "npm publish --access public"
   },
   "publishConfig": {
     "access": "public"
