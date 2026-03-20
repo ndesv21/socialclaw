@@ -42,6 +42,14 @@
 - Requires a public video URL or a SocialClaw-hosted video URL.
 - Non-video TikTok posts are not supported.
 
+## Telegram
+
+- Use `telegram` for bot-based posting into channels, groups, supergroups, or chats.
+- Telegram is not connected through OAuth; it is connected manually with a bot token and `chat_id` or `@channelusername`.
+- One optional image or one optional video is supported per Telegram post.
+- Channels require the bot to be an administrator or creator.
+- Provider-native analytics, replies, and threaded interactions are not implemented.
+
 ## YouTube
 
 - Use `youtube` for channel uploads.

@@ -60,6 +60,14 @@ socialclaw accounts connect --provider youtube --open
 socialclaw accounts status --connection-id <connection-id> --json
 ```
 
+Connect Telegram manually with a bot token and chat target:
+
+```bash
+socialclaw accounts connect --provider telegram --bot-token <bot-token> --chat-id @yourchannel --json
+```
+
+Use a numeric `chat_id` when posting into a group/supergroup that does not expose a stable username.
+
 Disconnect an account:
 
 ```bash
@@ -193,3 +201,4 @@ socialclaw usage --json
 - It does not contain provider OAuth implementations by itself.
 - It does not eliminate the need for a workspace API key.
 - It is a client for the hosted service, not a standalone scheduler.
+- Telegram is a manual bot-token provider, not an OAuth browser redirect.

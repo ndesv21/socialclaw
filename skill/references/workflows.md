@@ -54,6 +54,19 @@ curl -sS \
   "https://getsocialclaw.com/v1/connections/<connection-id>"
 ```
 
+### Connect Telegram manually
+
+```bash
+curl -sS \
+  -X POST \
+  -H "Authorization: Bearer $SC_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"provider":"telegram","botToken":"<bot-token>","chatId":"@yourchannel"}' \
+  "https://getsocialclaw.com/v1/connections/start"
+```
+
+Use a numeric `chatId` for groups/supergroups when you do not have a stable `@channelusername`.
+
 ### List accounts
 
 ```bash
@@ -182,6 +195,7 @@ curl -sS \
 - Facebook personal profile publishing
 - Personal Instagram accounts
 - TikTok image posts
+- Telegram OAuth browser auth
 - Reddit native media/gallery upload
 - LinkedIn video posts
 - YouTube community posts or Shorts-specific flows
