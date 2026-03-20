@@ -1,68 +1,21 @@
 # SocialClaw Workflows
 
-## CLI first
+## Get a workspace API key
 
-If the `socialclaw` CLI is installed, prefer it over handwritten HTTP calls.
-
-### Login
+If the user does not have a key yet:
 
 ```bash
-socialclaw login --api-key <workspace-key> --base-url https://getsocialclaw.com
+open https://getsocialclaw.com/dashboard
 ```
 
-### Connect an account
+Tell them:
+- sign in with Google
+- open the API key section
+- create or copy their workspace API key
+
+Then set:
 
 ```bash
-socialclaw accounts connect --provider youtube --open
-socialclaw accounts status --connection-id <connection-id> --json
-```
-
-### List accounts
-
-```bash
-socialclaw accounts list --json
-socialclaw accounts capabilities --account-id <account-id> --json
-socialclaw accounts settings --account-id <account-id> --json
-socialclaw accounts actions --account-id <account-id> --json
-```
-
-### Upload media
-
-```bash
-socialclaw assets upload --file ./video.mp4 --json
-```
-
-### Validate or preview a schedule
-
-```bash
-socialclaw validate -f schedule.json --json
-socialclaw campaigns preview -f schedule.json --json
-```
-
-### Apply a schedule
-
-```bash
-socialclaw apply -f schedule.json --json
-```
-
-### Inspect results
-
-```bash
-socialclaw posts list --limit 20 --json
-socialclaw posts get --post-id <post-id> --json
-socialclaw runs inspect --run-id <run-id> --json
-socialclaw analytics post --post-id <post-id> --json
-socialclaw workspace health --json
-socialclaw connections health --json
-socialclaw jobs list --limit 20 --json
-```
-
-## HTTP fallback
-
-Set:
-
-```bash
-export SC_BASE_URL="https://getsocialclaw.com"
 export SC_API_KEY="<workspace-key>"
 ```
 
@@ -77,7 +30,7 @@ Common header:
 ```bash
 curl -sS \
   -H "Authorization: Bearer $SC_API_KEY" \
-  "$SC_BASE_URL/v1/keys/validate"
+  "https://getsocialclaw.com/v1/keys/validate"
 ```
 
 ### Start account connection
@@ -88,7 +41,7 @@ curl -sS \
   -H "Authorization: Bearer $SC_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"provider":"youtube"}' \
-  "$SC_BASE_URL/v1/connections/start"
+  "https://getsocialclaw.com/v1/connections/start"
 ```
 
 Then poll:
@@ -96,7 +49,7 @@ Then poll:
 ```bash
 curl -sS \
   -H "Authorization: Bearer $SC_API_KEY" \
-  "$SC_BASE_URL/v1/connections/<connection-id>"
+  "https://getsocialclaw.com/v1/connections/<connection-id>"
 ```
 
 ### List accounts
@@ -104,7 +57,7 @@ curl -sS \
 ```bash
 curl -sS \
   -H "Authorization: Bearer $SC_API_KEY" \
-  "$SC_BASE_URL/v1/accounts"
+  "https://getsocialclaw.com/v1/accounts"
 ```
 
 ### Get capabilities
@@ -112,7 +65,7 @@ curl -sS \
 ```bash
 curl -sS \
   -H "Authorization: Bearer $SC_API_KEY" \
-  "$SC_BASE_URL/v1/accounts/<account-id>/capabilities"
+  "https://getsocialclaw.com/v1/accounts/<account-id>/capabilities"
 ```
 
 ### Upload media
@@ -122,7 +75,7 @@ curl -sS \
   -X POST \
   -H "Authorization: Bearer $SC_API_KEY" \
   -F "file=@./image.png" \
-  "$SC_BASE_URL/v1/assets/upload"
+  "https://getsocialclaw.com/v1/assets/upload"
 ```
 
 ### Validate a post/campaign
@@ -133,7 +86,7 @@ curl -sS \
   -H "Authorization: Bearer $SC_API_KEY" \
   -H "Content-Type: application/json" \
   -d @schedule.json \
-  "$SC_BASE_URL/v1/posts/validate"
+  "https://getsocialclaw.com/v1/posts/validate"
 ```
 
 ### Preview a campaign
@@ -144,7 +97,7 @@ curl -sS \
   -H "Authorization: Bearer $SC_API_KEY" \
   -H "Content-Type: application/json" \
   -d @schedule.json \
-  "$SC_BASE_URL/v1/campaigns/preview"
+  "https://getsocialclaw.com/v1/campaigns/preview"
 ```
 
 ### Apply a schedule
@@ -155,7 +108,7 @@ curl -sS \
   -H "Authorization: Bearer $SC_API_KEY" \
   -H "Content-Type: application/json" \
   -d @schedule.json \
-  "$SC_BASE_URL/v1/posts/apply"
+  "https://getsocialclaw.com/v1/posts/apply"
 ```
 
 ### Inspect posts and runs
@@ -163,15 +116,15 @@ curl -sS \
 ```bash
 curl -sS \
   -H "Authorization: Bearer $SC_API_KEY" \
-  "$SC_BASE_URL/v1/posts?limit=20"
+  "https://getsocialclaw.com/v1/posts?limit=20"
 
 curl -sS \
   -H "Authorization: Bearer $SC_API_KEY" \
-  "$SC_BASE_URL/v1/posts/<post-id>"
+  "https://getsocialclaw.com/v1/posts/<post-id>"
 
 curl -sS \
   -H "Authorization: Bearer $SC_API_KEY" \
-  "$SC_BASE_URL/v1/runs/<run-id>"
+  "https://getsocialclaw.com/v1/runs/<run-id>"
 ```
 
 ## Minimal schedule patterns
