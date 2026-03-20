@@ -1,0 +1,66 @@
+# SocialClaw Provider Notes
+
+## Facebook
+
+- Use `facebook` for Facebook Pages.
+- Personal Facebook profiles are not publish targets.
+- Media: one effective image or video per post.
+
+## Instagram Business
+
+- Use `instagram_business` only for professional/business accounts linked to a Facebook Page.
+- Publishing requires media.
+- Personal Instagram accounts do not belong on this provider.
+
+## Instagram Standalone
+
+- Use `instagram` for standalone professional accounts through Instagram Login.
+- This is separate from `instagram_business`.
+- Publishing requires media.
+
+## X
+
+- Supports text posts.
+- Supports native upload for up to four images or one video.
+- Supports reply steps in campaign flows.
+
+## LinkedIn Profile
+
+- Use `linkedin` for member profiles.
+- Supports text and native image upload.
+- Multi-image posts are supported.
+
+## LinkedIn Page
+
+- Use `linkedin_page` for organization/page targets.
+- Separate from member profile connections.
+- Supports text and native image upload.
+
+## TikTok
+
+- Use `tiktok` for video posting only.
+- Requires a public video URL or a SocialClaw-hosted video URL.
+- Non-video TikTok posts are not supported.
+
+## YouTube
+
+- Use `youtube` for channel uploads.
+- One video per post.
+- Community posts, Shorts-specific flows, playlists, and live-stream flows are not supported.
+
+## Reddit
+
+- Use `reddit` for self posts and link posts.
+- A `subreddit` setting is required.
+- Native Reddit media upload is not supported.
+- Live discovery actions can help find subreddit targets and flair options.
+
+## WordPress
+
+- Use `wordpress` for WordPress.com or Jetpack-connected sites.
+- SocialClaw uploads remote media and embeds it into the published content.
+
+## Legacy Meta
+
+- `meta` exists for older workspaces only.
+- New workspaces should prefer explicit `facebook` and `instagram_business`.

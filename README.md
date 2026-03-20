@@ -1,0 +1,47 @@
+# SocialClaw
+
+Public home for the SocialClaw CLI and OpenClaw skill.
+
+This repo is the public integration surface for SocialClaw:
+- the npm CLI package
+- the OpenClaw/ClawHub skill bundle
+- public usage docs and examples
+
+The hosted SocialClaw service lives at:
+- `https://getsocialclaw.com`
+
+## Install
+
+```bash
+npm install -g socialclaw
+```
+
+Commands:
+
+```bash
+socialclaw --help
+social --help
+```
+
+## Quick start
+
+```bash
+socialclaw login --api-key <workspace-key> --base-url https://getsocialclaw.com
+socialclaw accounts list --json
+socialclaw assets upload --file ./image.png --json
+socialclaw validate -f schedule.json --json
+socialclaw apply -f schedule.json --json
+```
+
+## Skill
+
+The OpenClaw-compatible skill bundle lives in:
+- [skill](./skill)
+
+Publish that folder to ClawHub if you want agents to discover and use SocialClaw through a hosted skill.
+
+## Notes
+
+- This public repo does not include the private SocialClaw backend.
+- End users connect accounts inside the hosted SocialClaw product.
+- The CLI works against a deployed SocialClaw workspace via API key auth.

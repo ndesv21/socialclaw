@@ -1,0 +1,44 @@
+{
+  "name": "socialclaw",
+  "version": "0.1.1",
+  "description": "SocialClaw command-line client for connecting accounts and publishing posts",
+  "type": "module",
+  "license": "MIT",
+  "author": "SocialClaw",
+  "homepage": "https://getsocialclaw.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ndesv21/socialclaw.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ndesv21/socialclaw/issues"
+  },
+  "keywords": [
+    "social media",
+    "scheduler",
+    "publishing",
+    "cli",
+    "oauth",
+    "socialclaw"
+  ],
+  "bin": {
+    "social": "src/index.mjs",
+    "socialclaw": "src/index.mjs"
+  },
+  "files": [
+    "src",
+    "skill",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --check src/index.mjs",
+    "pack:check": "npm pack"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
