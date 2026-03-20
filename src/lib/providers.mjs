@@ -12,6 +12,8 @@ const SUPPORTED_PROVIDERS = [
   "linkedin_page",
   "youtube",
   "reddit",
+  "discord",
+  "telegram",
   "wordpress"
 ];
 
@@ -37,6 +39,10 @@ const PROVIDER_ALIASES = {
   yt: "youtube",
   reddit: "reddit",
   rd: "reddit",
+  discord: "discord",
+  dc: "discord",
+  telegram: "telegram",
+  tg: "telegram",
   wordpress: "wordpress",
   wp: "wordpress"
 };
@@ -389,6 +395,82 @@ export function validateProviderPayload(normalizedPost) {
     if (interactionType !== "post") {
       throw new AppError("Reddit publish interactions currently support only post steps", {
         code: "reddit_interaction_unsupported",
+        statusCode: 422
+      });
+    }
+  }
+
+  if (provider === "discord") {
+    const text = [normalizedPost.name, normalizedPost.description]
+      .filter(Boolean)
+      .map((value) => String(value).trim())
+      .join("\n\n");
+
+    if (assetCount > 1) {
+      throw new AppError("Discord currently supports one media asset per post", {
+        code: "provider_multi_asset_unsupported",
+        statusCode: 422
+      });
+    }
+    if (interactionType !== "post") {
+      throw new AppError("Discord publish interactions currently support only post steps", {
+        code: "discord_interaction_unsupported",
+        statusCode: 422
+      });
+    }
+    if (!mediaLink && !text) {
+      throw new AppError("Discord posts require text or one media asset", {
+        code: "discord_text_or_media_required",
+        statusCode: 422
+      });
+    }
+    if (mediaKinds.includes("other")) {
+      throw new AppError("Discord supports text plus a single image or video asset per post", {
+        code: "discord_media_unsupported",
+        statusCode: 422
+      });
+    }
+    if (ext && !(IMAGE_EXT.has(ext) || VIDEO_EXT.has(ext))) {
+      throw new AppError("Discord media must be image/video (.jpg/.jpeg/.png/.webp/.mp4/.mov/.webm/.m4v)", {
+        code: "discord_media_unsupported",
+        statusCode: 422
+      });
+    }
+  }
+
+  if (provider === "telegram") {
+    const text = [normalizedPost.name, normalizedPost.description]
+      .filter(Boolean)
+      .map((value) => String(value).trim())
+      .join("\n\n");
+
+    if (assetCount > 1) {
+      throw new AppError("Telegram currently supports one media asset per post", {
+        code: "provider_multi_asset_unsupported",
+        statusCode: 422
+      });
+    }
+    if (interactionType !== "post") {
+      throw new AppError("Telegram publish interactions currently support only post steps", {
+        code: "telegram_interaction_unsupported",
+        statusCode: 422
+      });
+    }
+    if (!mediaLink && !text) {
+      throw new AppError("Telegram posts require text or one media asset", {
+        code: "telegram_text_or_media_required",
+        statusCode: 422
+      });
+    }
+    if (mediaKinds.includes("other")) {
+      throw new AppError("Telegram supports text plus a single image or video asset per post", {
+        code: "telegram_media_unsupported",
+        statusCode: 422
+      });
+    }
+    if (ext && !(IMAGE_EXT.has(ext) || VIDEO_EXT.has(ext))) {
+      throw new AppError("Telegram media must be image/video (.jpg/.jpeg/.png/.webp/.mp4/.mov/.webm/.m4v)", {
+        code: "telegram_media_unsupported",
         statusCode: 422
       });
     }

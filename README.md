@@ -15,6 +15,7 @@ Supported providers currently include:
 - LinkedIn profile
 - LinkedIn page
 - TikTok
+- Discord
 - Telegram
 - YouTube
 - Reddit
@@ -45,6 +46,7 @@ social --help
 socialclaw login
 socialclaw login --api-key <workspace-key> --base-url https://getsocialclaw.com
 socialclaw accounts list --json
+socialclaw accounts connect --provider discord --webhook-url <webhook-url> --json
 socialclaw accounts connect --provider telegram --bot-token <bot-token> --chat-id @yourchannel --json
 socialclaw assets upload --file ./image.png --json
 socialclaw validate -f schedule.json --json

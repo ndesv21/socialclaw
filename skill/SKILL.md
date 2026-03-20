@@ -1,6 +1,6 @@
 ---
 name: socialclaw
-description: Use when an OpenClaw-compatible agent needs to connect customer social accounts, upload media, schedule posts, inspect publish status, or manage a SocialClaw workspace through the deployed SocialClaw service. Relevant for X, Facebook Pages, Instagram Business, Instagram standalone, LinkedIn profile/page, TikTok, Telegram, YouTube, Reddit, and WordPress workflows.
+description: Use when an OpenClaw-compatible agent needs to connect customer social accounts, upload media, schedule posts, inspect publish status, or manage a SocialClaw workspace through the deployed SocialClaw service. Relevant for X, Facebook Pages, Instagram Business, Instagram standalone, LinkedIn profile/page, TikTok, Discord, Telegram, YouTube, Reddit, and WordPress workflows.
 homepage: https://getsocialclaw.com
 metadata: {"openclaw":{"homepage":"https://getsocialclaw.com","primaryEnv":"SC_API_KEY","requires":{"env":["SC_API_KEY"]},"install":[{"id":"npm","kind":"node","package":"socialclaw","bins":["socialclaw","social"],"label":"Install SocialClaw CLI (npm)"}]}}
 ---
@@ -142,6 +142,12 @@ Connect Telegram manually with a bot token and chat target:
 socialclaw accounts connect --provider telegram --bot-token <bot-token> --chat-id @yourchannel --json
 ```
 
+Connect Discord manually with a channel webhook URL:
+
+```bash
+socialclaw accounts connect --provider discord --webhook-url <discord-webhook-url> --json
+```
+
 List connected accounts:
 
 ```bash
@@ -192,12 +198,15 @@ Supported providers:
 - `linkedin`
 - `linkedin_page`
 - `tiktok`
+- `discord`
 - `telegram`
 - `youtube`
 - `reddit`
 - `wordpress`
 
-Telegram is the exception to the browser-based OAuth flow. It is connected manually with:
+Telegram and Discord are the exceptions to the browser-based OAuth flow.
+
+Telegram is connected manually with:
 - a Telegram bot token
 - a target `chat_id` or `@channelusername`
 
@@ -206,6 +215,15 @@ For Telegram:
   - `socialclaw accounts connect --provider telegram --bot-token <token> --chat-id <@channel|chat_id> --json`
 - API:
   - `POST /v1/connections/start` with `{"provider":"telegram","botToken":"...","chatId":"..." }`
+
+Discord is connected manually with:
+- a Discord channel webhook URL
+
+For Discord:
+- CLI:
+  - `socialclaw accounts connect --provider discord --webhook-url <discord-webhook-url> --json`
+- API:
+  - `POST /v1/connections/start` with `{"provider":"discord","webhookUrl":"..." }`
 
 ## Read next
 

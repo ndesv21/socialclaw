@@ -67,6 +67,17 @@ curl -sS \
 
 Use a numeric `chatId` for groups/supergroups when you do not have a stable `@channelusername`.
 
+### Connect Discord manually
+
+```bash
+curl -sS \
+  -X POST \
+  -H "Authorization: Bearer $SC_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"provider":"discord","webhookUrl":"<discord-webhook-url>"}' \
+  "https://getsocialclaw.com/v1/connections/start"
+```
+
 ### List accounts
 
 ```bash

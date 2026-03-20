@@ -50,6 +50,14 @@
 - Channels require the bot to be an administrator or creator.
 - Provider-native analytics, replies, and threaded interactions are not implemented.
 
+## Discord
+
+- Use `discord` for channel posting through a Discord webhook URL.
+- Discord is not connected through OAuth; it is connected manually with a channel webhook URL.
+- One optional image or one optional video is supported per Discord post.
+- SocialClaw fetches the media URL and uploads the file to the webhook before sending the message.
+- Thread targeting, embeds, and provider-native analytics are not implemented.
+
 ## YouTube
 
 - Use `youtube` for channel uploads.

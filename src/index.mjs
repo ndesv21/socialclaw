@@ -45,7 +45,7 @@ Schedules and campaigns:
   ${PRIMARY_COMMAND} publish-draft --run-id <id> [--start-at <iso8601>] [--json]
 
 Posts and runs:
-  ${PRIMARY_COMMAND} posts list [--run-id <id>] [--status <status>] [--account <handle>] [--provider <x|facebook|instagram_business|instagram|linkedin|linkedin_page|youtube|reddit|meta|tiktok|telegram|wordpress>] [--campaign-id <id>] [--limit <n>] [--json]
+  ${PRIMARY_COMMAND} posts list [--run-id <id>] [--status <status>] [--account <handle>] [--provider <x|facebook|instagram_business|instagram|linkedin|linkedin_page|youtube|reddit|discord|meta|tiktok|telegram|wordpress>] [--campaign-id <id>] [--limit <n>] [--json]
   ${PRIMARY_COMMAND} posts get --post-id <id> [--json]
   ${PRIMARY_COMMAND} posts attempts --post-id <id> [--json]
   ${PRIMARY_COMMAND} posts reconcile --post-id <id> [--json]
@@ -56,13 +56,14 @@ Posts and runs:
   ${PRIMARY_COMMAND} view --run-id <id> [--format terminal|html] [--output <file>]
 
 Accounts:
-  ${PRIMARY_COMMAND} accounts list [--provider <x|facebook|instagram_business|instagram|linkedin|linkedin_page|youtube|reddit|meta|tiktok|telegram|wordpress>] [--json]
-  ${PRIMARY_COMMAND} accounts capabilities [--account-id <id>] [--provider <x|facebook|instagram_business|instagram|linkedin|linkedin_page|youtube|reddit|meta|tiktok|telegram|wordpress>] [--json]
+  ${PRIMARY_COMMAND} accounts list [--provider <x|facebook|instagram_business|instagram|linkedin|linkedin_page|youtube|reddit|discord|meta|tiktok|telegram|wordpress>] [--json]
+  ${PRIMARY_COMMAND} accounts capabilities [--account-id <id>] [--provider <x|facebook|instagram_business|instagram|linkedin|linkedin_page|youtube|reddit|discord|meta|tiktok|telegram|wordpress>] [--json]
   ${PRIMARY_COMMAND} accounts settings --account-id <id> [--json]
   ${PRIMARY_COMMAND} accounts actions --account-id <id> [--json]
   ${PRIMARY_COMMAND} accounts action --account-id <id> --action <action-id> [--body <json> | --input <file>] [--json]
-  ${PRIMARY_COMMAND} accounts connect --provider <x|facebook|instagram_business|instagram|linkedin|linkedin_page|youtube|reddit|meta|tiktok|telegram|wordpress> [--open] [--json]
+  ${PRIMARY_COMMAND} accounts connect --provider <x|facebook|instagram_business|instagram|linkedin|linkedin_page|youtube|reddit|discord|meta|tiktok|telegram|wordpress> [--open] [--json]
   ${PRIMARY_COMMAND} accounts connect --provider telegram --bot-token <token> --chat-id <@channel|chat_id> [--json]
+  ${PRIMARY_COMMAND} accounts connect --provider discord --webhook-url <url> [--json]
   ${PRIMARY_COMMAND} accounts status --connection-id <id> [--json]
   ${PRIMARY_COMMAND} accounts disconnect --account-id <id> [--json]
 
@@ -77,8 +78,8 @@ Workspace and analytics:
   ${PRIMARY_COMMAND} analytics refresh --post-id <id> [--window <window>] [--json]
   ${PRIMARY_COMMAND} usage [--json]
   ${PRIMARY_COMMAND} workspace health [--json]
-  ${PRIMARY_COMMAND} connections health [--provider <x|facebook|instagram_business|instagram|linkedin|linkedin_page|youtube|reddit|meta|tiktok|telegram|wordpress>] [--json]
-  ${PRIMARY_COMMAND} jobs list [--status <status>] [--provider <x|facebook|instagram_business|instagram|linkedin|linkedin_page|youtube|reddit|meta|tiktok|telegram|wordpress>] [--account <handle>] [--run-id <id>] [--limit <n>] [--json]
+  ${PRIMARY_COMMAND} connections health [--provider <x|facebook|instagram_business|instagram|linkedin|linkedin_page|youtube|reddit|discord|meta|tiktok|telegram|wordpress>] [--json]
+  ${PRIMARY_COMMAND} jobs list [--status <status>] [--provider <x|facebook|instagram_business|instagram|linkedin|linkedin_page|youtube|reddit|discord|meta|tiktok|telegram|wordpress>] [--account <handle>] [--run-id <id>] [--limit <n>] [--json]
 
 Docs:
   https://getsocialclaw.com
@@ -1440,6 +1441,9 @@ async function main() {
           body.botToken = requireArg(args, "bot-token");
           body.chatId = requireArg(args, "chat-id");
         }
+        if (provider === "discord") {
+          body.webhookUrl = requireArg(args, "webhook-url");
+        }
 
         const response = await apiRequest("POST", "/v1/connections/start", {
           ...auth,
@@ -1465,6 +1469,12 @@ async function main() {
             console.log(`Connected account: ${account.displayName} (${account.handle})`);
           }
           console.log("Telegram was connected directly using the supplied bot token and chat target.");
+        } else if (provider === "discord") {
+          const account = Array.isArray(response.accounts) ? response.accounts[0] : null;
+          if (account) {
+            console.log(`Connected account: ${account.displayName} (${account.handle})`);
+          }
+          console.log("Discord was connected directly using the supplied channel webhook URL.");
         } else if (!args.open) {
           console.log("Tip: add --open to launch browser automatically.");
         }

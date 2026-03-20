@@ -66,6 +66,14 @@ export function inferPublishTarget(accountOrDescriptor) {
     return { provider: "tiktok", accountType: "tiktok_user" };
   }
 
+  if (provider === "telegram" || handle.startsWith("telegram:")) {
+    return { provider: "telegram", accountType: accountType || "telegram_chat" };
+  }
+
+  if (provider === "discord" || handle.startsWith("discord:")) {
+    return { provider: "discord", accountType: "discord_webhook" };
+  }
+
   if (provider === "facebook" || handle.startsWith("facebook:")) {
     if (handle.startsWith("facebook:page:")) {
       return { provider: "facebook", accountType: "facebook_page" };
@@ -280,6 +288,75 @@ export function describePublishSettingsForAccount(accountOrDescriptor) {
       discovery: {
         publishShape: "video_only",
         mediaDelivery: "tiktok_pulls_public_video_url"
+      }
+    };
+  }
+
+  if (target.provider === "telegram" && String(target.accountType || "").startsWith("telegram_")) {
+    return {
+      supported: true,
+      target,
+      fields: [
+        {
+          id: "parseMode",
+          type: "enum",
+          required: false,
+          default: "none",
+          options: ["none", "HTML", "MarkdownV2"],
+          description: "Optional Telegram message formatting mode. Use `none` for plain text."
+        },
+        {
+          id: "disableNotification",
+          type: "boolean",
+          required: false,
+          default: false,
+          description: "Send the Telegram message silently."
+        },
+        {
+          id: "protectContent",
+          type: "boolean",
+          required: false,
+          default: false,
+          description: "Protect the Telegram message from forwarding and saving."
+        },
+        {
+          id: "disableLinkPreview",
+          type: "boolean",
+          required: false,
+          default: false,
+          description: "Disable link previews for text-only Telegram messages."
+        }
+      ],
+      discovery: {
+        publishShape: "text_message_with_optional_single_media",
+        mediaDelivery: "telegram_fetches_public_media_url"
+      }
+    };
+  }
+
+  if (target.provider === "discord" && target.accountType === "discord_webhook") {
+    return {
+      supported: true,
+      target,
+      fields: [
+        {
+          id: "tts",
+          type: "boolean",
+          required: false,
+          default: false,
+          description: "Send the Discord message using text-to-speech."
+        },
+        {
+          id: "suppressEmbeds",
+          type: "boolean",
+          required: false,
+          default: false,
+          description: "Suppress link embeds in the Discord message body."
+        }
+      ],
+      discovery: {
+        publishShape: "text_message_with_optional_single_media_upload",
+        mediaDelivery: "socialclaw_fetches_media_and_uploads_to_discord_webhook"
       }
     };
   }
@@ -646,6 +723,78 @@ export function validatePublishSettingsForTarget({ provider, account, settings, 
         normalizedSettings.commentEnabled === undefined ? true : Boolean(normalizedSettings.commentEnabled),
       stitchEnabled:
         normalizedSettings.stitchEnabled === undefined ? true : Boolean(normalizedSettings.stitchEnabled)
+    };
+  }
+
+  if (target.provider === "telegram" && String(target.accountType || "").startsWith("telegram_")) {
+    const normalized = normalizeSettingsInput(settings);
+    assertNoUnknownSettings(
+      normalized,
+      ["parseMode", "disableNotification", "protectContent", "disableLinkPreview"],
+      "telegram_settings_unsupported"
+    );
+
+    if (normalized.parseMode !== undefined) {
+      const value = String(normalized.parseMode || "none").trim();
+      if (!["none", "HTML", "MarkdownV2"].includes(value)) {
+        throw new AppError("parseMode must be one of: none, HTML, MarkdownV2", {
+          statusCode: 422,
+          code: "telegram_parse_mode_invalid"
+        });
+      }
+    }
+
+    for (const key of ["disableNotification", "protectContent", "disableLinkPreview"]) {
+      if (normalized[key] !== undefined && typeof normalized[key] !== "boolean") {
+        throw new AppError(`${key} must be a boolean`, {
+          statusCode: 422,
+          code: "telegram_setting_invalid"
+        });
+      }
+    }
+
+    if (mediaLink && !isImageMedia(mediaLink) && !isVideoMedia(mediaLink)) {
+      throw new AppError("Telegram media must be an image or video URL", {
+        statusCode: 422,
+        code: "telegram_media_unsupported"
+      });
+    }
+
+    return {
+      parseMode: normalized.parseMode === "none" || normalized.parseMode === undefined ? null : normalized.parseMode,
+      disableNotification: Boolean(normalized.disableNotification),
+      protectContent: Boolean(normalized.protectContent),
+      disableLinkPreview: Boolean(normalized.disableLinkPreview)
+    };
+  }
+
+  if (target.provider === "discord" && target.accountType === "discord_webhook") {
+    const normalized = normalizeSettingsInput(settings);
+    assertNoUnknownSettings(
+      normalized,
+      ["tts", "suppressEmbeds"],
+      "discord_settings_unsupported"
+    );
+
+    for (const key of ["tts", "suppressEmbeds"]) {
+      if (normalized[key] !== undefined && typeof normalized[key] !== "boolean") {
+        throw new AppError(`${key} must be a boolean`, {
+          statusCode: 422,
+          code: "discord_setting_invalid"
+        });
+      }
+    }
+
+    if (mediaLink && !isImageMedia(mediaLink) && !isVideoMedia(mediaLink)) {
+      throw new AppError("Discord media must be an image or video URL", {
+        statusCode: 422,
+        code: "discord_media_unsupported"
+      });
+    }
+
+    return {
+      tts: Boolean(normalized.tts),
+      suppressEmbeds: Boolean(normalized.suppressEmbeds)
     };
   }
 

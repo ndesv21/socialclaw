@@ -68,6 +68,14 @@ socialclaw accounts connect --provider telegram --bot-token <bot-token> --chat-i
 
 Use a numeric `chat_id` when posting into a group/supergroup that does not expose a stable username.
 
+Connect Discord manually with a channel webhook URL:
+
+```bash
+socialclaw accounts connect --provider discord --webhook-url <discord-webhook-url> --json
+```
+
+Use a channel webhook URL created from the target Discord server/channel integrations screen.
+
 Disconnect an account:
 
 ```bash
