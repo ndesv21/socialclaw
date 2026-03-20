@@ -23,7 +23,9 @@ Commands:
   ${COMMAND_ALIAS}
 
 Quick start:
+  ${PRIMARY_COMMAND} login
   ${PRIMARY_COMMAND} login --api-key <key> [--base-url https://getsocialclaw.com]
+  ${COMMAND_ALIAS} login
   ${COMMAND_ALIAS} login --api-key <key> [--base-url https://getsocialclaw.com]
   ${PRIMARY_COMMAND} accounts list --json
   ${PRIMARY_COMMAND} assets upload --file ./image.png --json
@@ -31,6 +33,7 @@ Quick start:
   ${PRIMARY_COMMAND} apply -f schedule.json --json
 
 Authentication:
+  ${PRIMARY_COMMAND} login
   ${PRIMARY_COMMAND} login --api-key <key> [--base-url <url>]
 
 Schedules and campaigns:
@@ -736,7 +739,10 @@ async function readOptionalJsonInput(args) {
 async function withAuthConfig() {
   const config = await readConfig();
   if (!config?.apiKey) {
-    console.error(`Not logged in. Run: ${PRIMARY_COMMAND} login --api-key <key>`);
+    const dashboardUrl = `${DEFAULT_BASE_URL.replace(/\/$/, "")}/dashboard`;
+    console.error("No SocialClaw API key is configured.");
+    console.error(`Open ${dashboardUrl}, sign in with Google, create an API key, then run:`);
+    console.error(`  ${PRIMARY_COMMAND} login --api-key <key>`);
     process.exit(3);
   }
   return {
@@ -756,8 +762,26 @@ async function main() {
 
   try {
     if (command === "login") {
-      const apiKey = requireArg(args, "api-key");
       const baseUrl = String(args["base-url"] || DEFAULT_BASE_URL);
+      const apiKey = args["api-key"] ? String(args["api-key"]) : "";
+
+      if (!apiKey) {
+        const dashboardUrl = `${baseUrl.replace(/\/$/, "")}/dashboard`;
+        if (args.json) {
+          exitJson(0, {
+            ok: true,
+            action: "open_dashboard",
+            dashboardUrl,
+            message: "Sign in with Google, create an API key in the dashboard, then rerun login with --api-key."
+          });
+        }
+        console.log(`Open ${dashboardUrl}`);
+        console.log("Sign in with Google, create an API key, then rerun:");
+        console.log(`  ${PRIMARY_COMMAND} login --api-key <key>`);
+        openUrl(dashboardUrl);
+        return;
+      }
+
       const payload = await apiRequest("POST", "/v1/keys/validate", { apiKey, baseUrl });
       await saveConfig({ apiKey, baseUrl });
 

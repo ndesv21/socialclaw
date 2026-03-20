@@ -14,7 +14,10 @@ The hosted SocialClaw service lives at:
 
 ```bash
 npm install -g socialclaw
+socialclaw login
 ```
+
+Running `socialclaw login` without an API key opens the hosted dashboard so the user can sign in with Google and create a workspace API key.
 
 Commands:
 
@@ -26,6 +29,7 @@ social --help
 ## Quick start
 
 ```bash
+socialclaw login
 socialclaw login --api-key <workspace-key> --base-url https://getsocialclaw.com
 socialclaw accounts list --json
 socialclaw assets upload --file ./image.png --json
