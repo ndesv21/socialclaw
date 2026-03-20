@@ -34,7 +34,8 @@ Do not use this skill for editing the SocialClaw codebase itself. This bundle is
 
 - Base URL: `https://getsocialclaw.com`
 - Auth: workspace API key in `Authorization: Bearer <key>`
-- This skill operates the hosted SocialClaw service through its HTTP API.
+- Preferred interface: `socialclaw` CLI when installed
+- Fallback interface: SocialClaw HTTP API
 
 ## Runtime requirements
 
@@ -46,7 +47,7 @@ Do not use this skill for editing the SocialClaw codebase itself. This bundle is
 
 SocialClaw also has a separate npm CLI package named `socialclaw`.
 
-Use it only if it is already installed or the user explicitly wants CLI examples. The CLI is a client for the hosted SocialClaw service. It can:
+Prefer it when it is already installed or the user wants command-line examples. The CLI is a client for the hosted SocialClaw service. It can:
 - store a workspace API key locally
 - start connection flows
 - upload assets
@@ -80,7 +81,13 @@ Set:
 export SC_API_KEY="<workspace-key>"
 ```
 
-Validate the key:
+If the CLI is installed, log in with it:
+
+```bash
+socialclaw login --api-key <workspace-key>
+```
+
+Otherwise validate the key over HTTP:
 
 ```bash
 curl -sS \
@@ -115,69 +122,57 @@ curl -sS \
 
 ## Essential examples
 
+If the CLI is installed, prefer commands like these:
+
+Store the workspace key:
+
+```bash
+socialclaw login --api-key <workspace-key>
+```
+
 Start a connection flow:
 
 ```bash
-curl -sS \
-  -X POST \
-  -H "Authorization: Bearer $SC_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"provider":"youtube"}' \
-  "https://getsocialclaw.com/v1/connections/start"
+socialclaw accounts connect --provider youtube --open
 ```
 
 List connected accounts:
 
 ```bash
-curl -sS \
-  -H "Authorization: Bearer $SC_API_KEY" \
-  "https://getsocialclaw.com/v1/accounts"
+socialclaw accounts list --json
 ```
 
 Upload media:
 
 ```bash
-curl -sS \
-  -X POST \
-  -H "Authorization: Bearer $SC_API_KEY" \
-  -F "file=@./image.png" \
-  "https://getsocialclaw.com/v1/assets/upload"
+socialclaw assets upload --file ./image.png --json
 ```
 
 Validate a schedule:
 
 ```bash
-curl -sS \
-  -X POST \
-  -H "Authorization: Bearer $SC_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d @schedule.json \
-  "https://getsocialclaw.com/v1/posts/validate"
+socialclaw validate -f schedule.json --json
 ```
 
 Apply a schedule:
 
 ```bash
-curl -sS \
-  -X POST \
-  -H "Authorization: Bearer $SC_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d @schedule.json \
-  "https://getsocialclaw.com/v1/posts/apply"
+socialclaw apply -f schedule.json --json
 ```
 
 Inspect a post:
 
 ```bash
-curl -sS \
-  -H "Authorization: Bearer $SC_API_KEY" \
-  "https://getsocialclaw.com/v1/posts/<post-id>"
+socialclaw posts get --post-id <post-id> --json
 ```
 
 ## Connection workflow
 
 For browser-based account linking:
 
+- CLI:
+  - `socialclaw accounts connect --provider <provider> --open`
+  - then `socialclaw accounts status --connection-id <id> --json`
 - API:
   - `POST /v1/connections/start`
   - return the authorize URL to the user or open it if browser tools are available
@@ -197,6 +192,6 @@ Supported providers:
 
 ## Read next
 
-- For request payloads and HTTP recipes, read [references/workflows.md](./references/workflows.md).
+- For HTTP fallback recipes, read [references/workflows.md](./references/workflows.md).
 - For the optional CLI and command examples, read [references/cli.md](./references/cli.md).
 - For provider/account-type caveats, read [references/providers.md](./references/providers.md).
