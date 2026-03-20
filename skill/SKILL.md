@@ -9,6 +9,19 @@ metadata: {"openclaw":{"homepage":"https://getsocialclaw.com","primaryEnv":"SC_A
 
 SocialClaw is a workspace-scoped social publishing service at `https://getsocialclaw.com`.
 
+## What this skill is
+
+This skill is an instruction layer for the hosted SocialClaw service.
+
+It does not contain the SocialClaw backend or the provider integrations themselves.
+It teaches an OpenClaw-compatible agent how to:
+- get or use a workspace API key
+- call the SocialClaw HTTP API
+- understand provider/account-type caveats
+- optionally use the separate `socialclaw` CLI if it is already installed
+
+This skill can work without the CLI. The CLI is only an optional client for the same hosted service.
+
 Use this skill when the user wants to:
 - connect or disconnect social accounts in a SocialClaw workspace
 - upload media and get SocialClaw-hosted delivery URLs
@@ -22,6 +35,19 @@ Do not use this skill for editing the SocialClaw codebase itself. This bundle is
 - Base URL: `https://getsocialclaw.com`
 - Auth: workspace API key in `Authorization: Bearer <key>`
 - This skill operates the hosted SocialClaw service through its HTTP API.
+
+## Optional CLI
+
+SocialClaw also has a separate npm CLI package named `socialclaw`.
+
+Use it only if it is already installed or the user explicitly wants CLI examples. The CLI is a client for the hosted SocialClaw service. It can:
+- store a workspace API key locally
+- start connection flows
+- upload assets
+- validate, preview, and apply schedules
+- inspect posts, runs, analytics, usage, and workspace health
+
+The CLI is optional. This skill does not require it to function.
 
 ## Operating rules
 
@@ -72,4 +98,5 @@ Supported providers:
 ## Read next
 
 - For request payloads and HTTP recipes, read [references/workflows.md](./references/workflows.md).
+- For the optional CLI and command examples, read [references/cli.md](./references/cli.md).
 - For provider/account-type caveats, read [references/providers.md](./references/providers.md).

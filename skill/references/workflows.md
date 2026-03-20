@@ -1,5 +1,7 @@
 # SocialClaw Workflows
 
+If the user wants CLI commands instead of raw HTTP requests, read [cli.md](./cli.md).
+
 ## Get a workspace API key
 
 If the user does not have a key yet:
