@@ -36,6 +36,12 @@ Do not use this skill for editing the SocialClaw codebase itself. This bundle is
 - Auth: workspace API key in `Authorization: Bearer <key>`
 - This skill operates the hosted SocialClaw service through its HTTP API.
 
+## Runtime requirements
+
+- Required env: `SC_API_KEY`
+- Hosted base URL: `https://getsocialclaw.com`
+- Optional CLI: `socialclaw` (or `social`) if already installed
+
 ## Optional CLI
 
 SocialClaw also has a separate npm CLI package named `socialclaw`.
@@ -48,6 +54,39 @@ Use it only if it is already installed or the user explicitly wants CLI examples
 - inspect posts, runs, analytics, usage, and workspace health
 
 The CLI is optional. This skill does not require it to function.
+
+If the user explicitly wants the CLI and it is not installed yet:
+
+```bash
+npm install -g socialclaw
+```
+
+## Quick start
+
+If the user does not have a workspace API key yet:
+
+```bash
+open https://getsocialclaw.com/dashboard
+```
+
+Then tell them:
+- sign in with Google
+- open the API key section
+- create or copy their workspace API key
+
+Set:
+
+```bash
+export SC_API_KEY="<workspace-key>"
+```
+
+Validate the key:
+
+```bash
+curl -sS \
+  -H "Authorization: Bearer $SC_API_KEY" \
+  "https://getsocialclaw.com/v1/keys/validate"
+```
 
 ## Operating rules
 
@@ -73,6 +112,67 @@ The CLI is optional. This skill does not require it to function.
 7. Validate or preview the post/campaign.
 8. Apply it.
 9. Inspect posts, runs, analytics, or retry/reconcile if needed.
+
+## Essential examples
+
+Start a connection flow:
+
+```bash
+curl -sS \
+  -X POST \
+  -H "Authorization: Bearer $SC_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"provider":"youtube"}' \
+  "https://getsocialclaw.com/v1/connections/start"
+```
+
+List connected accounts:
+
+```bash
+curl -sS \
+  -H "Authorization: Bearer $SC_API_KEY" \
+  "https://getsocialclaw.com/v1/accounts"
+```
+
+Upload media:
+
+```bash
+curl -sS \
+  -X POST \
+  -H "Authorization: Bearer $SC_API_KEY" \
+  -F "file=@./image.png" \
+  "https://getsocialclaw.com/v1/assets/upload"
+```
+
+Validate a schedule:
+
+```bash
+curl -sS \
+  -X POST \
+  -H "Authorization: Bearer $SC_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d @schedule.json \
+  "https://getsocialclaw.com/v1/posts/validate"
+```
+
+Apply a schedule:
+
+```bash
+curl -sS \
+  -X POST \
+  -H "Authorization: Bearer $SC_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d @schedule.json \
+  "https://getsocialclaw.com/v1/posts/apply"
+```
+
+Inspect a post:
+
+```bash
+curl -sS \
+  -H "Authorization: Bearer $SC_API_KEY" \
+  "https://getsocialclaw.com/v1/posts/<post-id>"
+```
 
 ## Connection workflow
 
