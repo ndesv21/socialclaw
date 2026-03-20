@@ -2,7 +2,7 @@
 name: socialclaw
 description: Use when an OpenClaw-compatible agent needs to connect customer social accounts, upload media, schedule posts, inspect publish status, or manage a SocialClaw workspace through the deployed SocialClaw service. Relevant for X, Facebook Pages, Instagram Business, Instagram standalone, LinkedIn profile/page, TikTok, YouTube, Reddit, and WordPress workflows.
 homepage: https://getsocialclaw.com
-metadata: {"openclaw":{"homepage":"https://getsocialclaw.com","primaryEnv":"SC_API_KEY","requires":{"env":["SC_API_KEY"]}}}
+metadata: {"openclaw":{"homepage":"https://getsocialclaw.com","primaryEnv":"SC_API_KEY","requires":{"env":["SC_API_KEY"]},"install":[{"id":"npm","kind":"node","package":"socialclaw","bins":["socialclaw","social"],"label":"Install SocialClaw CLI (npm)"}]}}
 ---
 
 # SocialClaw
