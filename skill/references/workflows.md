@@ -208,5 +208,4 @@ curl -sS \
 - TikTok image posts
 - Telegram OAuth browser auth
 - Reddit native media/gallery upload
-- LinkedIn video posts
 - YouTube community posts or Shorts-specific flows

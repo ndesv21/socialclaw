@@ -1,6 +1,6 @@
 {
   "name": "socialclaw",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "SocialClaw command-line client for connecting accounts and publishing posts",
   "type": "module",
   "license": "MIT",

@@ -311,20 +311,20 @@ export function validateProviderPayload(normalizedPost) {
         statusCode: 422
       });
     }
-    if (videoCount > 0) {
-      throw new AppError("LinkedIn video publishing is not implemented yet; use text or image posts", {
-        code: "linkedin_video_unsupported",
+    if (videoCount > 1 || (videoCount === 1 && assetCount > 1)) {
+      throw new AppError("LinkedIn supports one video asset or up to twenty image assets per post", {
+        code: "linkedin_multi_video_unsupported",
         statusCode: 422
       });
     }
     if (mediaKinds.includes("other")) {
-      throw new AppError("LinkedIn supports image URLs or plain text in SocialClaw today", {
+      throw new AppError("LinkedIn supports image/video URLs or plain text in SocialClaw today", {
         code: "linkedin_media_unsupported",
         statusCode: 422
       });
     }
     if (ext && !(IMAGE_EXT.has(ext) || VIDEO_EXT.has(ext))) {
-      throw new AppError("LinkedIn supports plain text plus image assets", {
+      throw new AppError("LinkedIn supports plain text plus image assets or one video asset", {
         code: "linkedin_media_unsupported",
         statusCode: 422
       });
@@ -344,14 +344,14 @@ export function validateProviderPayload(normalizedPost) {
         statusCode: 422
       });
     }
-    if (videoCount > 0) {
-      throw new AppError("LinkedIn page video publishing is not implemented yet; use text or image posts", {
-        code: "linkedin_video_unsupported",
+    if (videoCount > 1 || (videoCount === 1 && assetCount > 1)) {
+      throw new AppError("LinkedIn pages support one video asset or up to twenty image assets per post", {
+        code: "linkedin_multi_video_unsupported",
         statusCode: 422
       });
     }
     if (mediaKinds.includes("other")) {
-      throw new AppError("LinkedIn pages support image URLs or plain text in SocialClaw today", {
+      throw new AppError("LinkedIn pages support image/video URLs or plain text in SocialClaw today", {
         code: "linkedin_media_unsupported",
         statusCode: 422
       });

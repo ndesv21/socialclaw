@@ -27,14 +27,15 @@
 ## LinkedIn Profile
 
 - Use `linkedin` for member profiles.
-- Supports text and native image upload.
-- Multi-image posts are supported.
+- Supports text and native image/video upload.
+- Supports one video or up to twenty images per post.
 
 ## LinkedIn Page
 
 - Use `linkedin_page` for organization/page targets.
 - Separate from member profile connections.
-- Supports text and native image upload.
+- Supports text and native image/video upload.
+- Supports one video or up to twenty images per post.
 
 ## TikTok
 
