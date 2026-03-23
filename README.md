@@ -14,6 +14,7 @@ Supported providers currently include:
 - Instagram standalone professional accounts
 - LinkedIn profile
 - LinkedIn page
+- Pinterest
 - TikTok
 - Discord
 - Telegram
@@ -46,12 +47,15 @@ social --help
 socialclaw login
 socialclaw login --api-key <workspace-key> --base-url https://getsocialclaw.com
 socialclaw accounts list --json
+socialclaw accounts connect --provider pinterest --open
 socialclaw accounts connect --provider discord --webhook-url <webhook-url> --json
 socialclaw accounts connect --provider telegram --bot-token <bot-token> --chat-id @yourchannel --json
 socialclaw assets upload --file ./image.png --json
 socialclaw validate -f schedule.json --json
 socialclaw apply -f schedule.json --json
 ```
+
+Pinterest is exposed as the `pinterest` provider in the public CLI and skill bundle. Its main publish target is board-centric, with support for standard pins, video pins, multi-image pins, board creation and section/catalog discovery, plus pin/account analytics. Product, collection, and idea surfaces should be treated as capability-gated or beta rather than assumed for every workspace.
 
 ## Skill
 

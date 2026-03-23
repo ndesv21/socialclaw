@@ -60,6 +60,20 @@ socialclaw accounts connect --provider youtube --open
 socialclaw accounts status --connection-id <connection-id> --json
 ```
 
+Connect Pinterest through the standard OAuth flow:
+
+```bash
+socialclaw accounts connect --provider pinterest --open
+socialclaw accounts capabilities --provider pinterest --json
+```
+
+Pinterest is board-centric. After connecting, inspect account actions before assuming sections, catalogs, or advanced product/collection/idea surfaces are available:
+
+```bash
+socialclaw accounts actions --account-id <account-id> --json
+socialclaw accounts action --account-id <account-id> --action <action-id> --body '{}' --json
+```
+
 Connect Telegram manually with a bot token and chat target:
 
 ```bash
@@ -188,6 +202,8 @@ socialclaw analytics account --account-id <account-id> --json
 socialclaw analytics run --run-id <run-id> --json
 ```
 
+Pinterest pin analytics and Pinterest account analytics use the same commands after the target board/account is connected.
+
 Force a refresh:
 
 ```bash
@@ -210,3 +226,4 @@ socialclaw usage --json
 - It does not eliminate the need for a workspace API key.
 - It is a client for the hosted service, not a standalone scheduler.
 - Telegram is a manual bot-token provider, not an OAuth browser redirect.
+- Pinterest product, collection, and idea surfaces should be treated as capability-gated or beta until account capabilities/actions confirm them.

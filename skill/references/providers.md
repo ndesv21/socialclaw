@@ -37,6 +37,15 @@
 - Supports text and native image/video upload.
 - Supports one video or up to twenty images per post.
 
+## Pinterest
+
+- Use `pinterest` for Pinterest's official OAuth provider flow.
+- The primary publish target is board-centric.
+- Supports standard pins, video pins, and multi-image pins.
+- Use discovery actions to create boards, inspect board sections, and discover connected catalogs.
+- Pin analytics and account analytics are supported through the standard SocialClaw analytics commands.
+- Product, collection, and idea surfaces are capability-gated or beta. Check account capabilities/actions before promising them.
+
 ## TikTok
 
 - Use `tiktok` for video posting only.

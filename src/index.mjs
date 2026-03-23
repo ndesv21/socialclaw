@@ -12,6 +12,8 @@ const CONFIG_PATH = path.join(CONFIG_DIR, "config.json");
 const DEFAULT_BASE_URL = process.env.SC_BASE_URL || "https://getsocialclaw.com";
 const PRIMARY_COMMAND = "socialclaw";
 const COMMAND_ALIAS = "social";
+const PROVIDER_HELP =
+  "x|facebook|instagram_business|instagram|linkedin|linkedin_page|pinterest|youtube|reddit|discord|meta|tiktok|telegram|wordpress";
 
 function printUsage() {
   console.log(`SocialClaw CLI
@@ -28,6 +30,7 @@ Quick start:
   ${COMMAND_ALIAS} login
   ${COMMAND_ALIAS} login --api-key <key> [--base-url https://getsocialclaw.com]
   ${PRIMARY_COMMAND} accounts list --json
+  ${PRIMARY_COMMAND} accounts connect --provider pinterest --open
   ${PRIMARY_COMMAND} assets upload --file ./image.png --json
   ${PRIMARY_COMMAND} validate -f schedule.json --json
   ${PRIMARY_COMMAND} apply -f schedule.json --json
@@ -45,7 +48,7 @@ Schedules and campaigns:
   ${PRIMARY_COMMAND} publish-draft --run-id <id> [--start-at <iso8601>] [--json]
 
 Posts and runs:
-  ${PRIMARY_COMMAND} posts list [--run-id <id>] [--status <status>] [--account <handle>] [--provider <x|facebook|instagram_business|instagram|linkedin|linkedin_page|youtube|reddit|discord|meta|tiktok|telegram|wordpress>] [--campaign-id <id>] [--limit <n>] [--json]
+  ${PRIMARY_COMMAND} posts list [--run-id <id>] [--status <status>] [--account <handle>] [--provider <${PROVIDER_HELP}>] [--campaign-id <id>] [--limit <n>] [--json]
   ${PRIMARY_COMMAND} posts get --post-id <id> [--json]
   ${PRIMARY_COMMAND} posts attempts --post-id <id> [--json]
   ${PRIMARY_COMMAND} posts reconcile --post-id <id> [--json]
@@ -56,12 +59,12 @@ Posts and runs:
   ${PRIMARY_COMMAND} view --run-id <id> [--format terminal|html] [--output <file>]
 
 Accounts:
-  ${PRIMARY_COMMAND} accounts list [--provider <x|facebook|instagram_business|instagram|linkedin|linkedin_page|youtube|reddit|discord|meta|tiktok|telegram|wordpress>] [--json]
-  ${PRIMARY_COMMAND} accounts capabilities [--account-id <id>] [--provider <x|facebook|instagram_business|instagram|linkedin|linkedin_page|youtube|reddit|discord|meta|tiktok|telegram|wordpress>] [--json]
+  ${PRIMARY_COMMAND} accounts list [--provider <${PROVIDER_HELP}>] [--json]
+  ${PRIMARY_COMMAND} accounts capabilities [--account-id <id>] [--provider <${PROVIDER_HELP}>] [--json]
   ${PRIMARY_COMMAND} accounts settings --account-id <id> [--json]
   ${PRIMARY_COMMAND} accounts actions --account-id <id> [--json]
   ${PRIMARY_COMMAND} accounts action --account-id <id> --action <action-id> [--body <json> | --input <file>] [--json]
-  ${PRIMARY_COMMAND} accounts connect --provider <x|facebook|instagram_business|instagram|linkedin|linkedin_page|youtube|reddit|discord|meta|tiktok|telegram|wordpress> [--open] [--json]
+  ${PRIMARY_COMMAND} accounts connect --provider <${PROVIDER_HELP}> [--open] [--json]
   ${PRIMARY_COMMAND} accounts connect --provider telegram --bot-token <token> --chat-id <@channel|chat_id> [--json]
   ${PRIMARY_COMMAND} accounts connect --provider discord --webhook-url <url> [--json]
   ${PRIMARY_COMMAND} accounts status --connection-id <id> [--json]
@@ -78,8 +81,8 @@ Workspace and analytics:
   ${PRIMARY_COMMAND} analytics refresh --post-id <id> [--window <window>] [--json]
   ${PRIMARY_COMMAND} usage [--json]
   ${PRIMARY_COMMAND} workspace health [--json]
-  ${PRIMARY_COMMAND} connections health [--provider <x|facebook|instagram_business|instagram|linkedin|linkedin_page|youtube|reddit|discord|meta|tiktok|telegram|wordpress>] [--json]
-  ${PRIMARY_COMMAND} jobs list [--status <status>] [--provider <x|facebook|instagram_business|instagram|linkedin|linkedin_page|youtube|reddit|discord|meta|tiktok|telegram|wordpress>] [--account <handle>] [--run-id <id>] [--limit <n>] [--json]
+  ${PRIMARY_COMMAND} connections health [--provider <${PROVIDER_HELP}>] [--json]
+  ${PRIMARY_COMMAND} jobs list [--status <status>] [--provider <${PROVIDER_HELP}>] [--account <handle>] [--run-id <id>] [--limit <n>] [--json]
 
 Docs:
   https://getsocialclaw.com

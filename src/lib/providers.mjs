@@ -7,6 +7,7 @@ const SUPPORTED_PROVIDERS = [
   "facebook",
   "instagram_business",
   "instagram",
+  "pinterest",
   "tiktok",
   "linkedin",
   "linkedin_page",
@@ -29,6 +30,8 @@ const PROVIDER_ALIASES = {
   "instagram-linked": "instagram_business",
   instagram: "instagram",
   ig: "instagram",
+  pinterest: "pinterest",
+  pin: "pinterest",
   tiktok: "tiktok",
   linkedin: "linkedin",
   li: "linkedin",
@@ -293,6 +296,33 @@ export function validateProviderPayload(normalizedPost) {
     if (!ext || !VIDEO_EXT.has(ext)) {
       throw new AppError("TikTok media must be video (.mp4/.mov/.webm/.m4v)", {
         code: "tiktok_video_required",
+        statusCode: 422
+      });
+    }
+  }
+
+  if (provider === "pinterest") {
+    if (interactionType !== "post") {
+      throw new AppError("Pinterest publish interactions currently support only post steps", {
+        code: "pinterest_interaction_unsupported",
+        statusCode: 422
+      });
+    }
+    if (!mediaLink) {
+      throw new AppError("Pinterest pins require image or video media", {
+        code: "pinterest_media_required",
+        statusCode: 422
+      });
+    }
+    if (mediaKinds.includes("other")) {
+      throw new AppError("Pinterest supports image/video media URLs for standard, video, and multi-image pins", {
+        code: "pinterest_media_unsupported",
+        statusCode: 422
+      });
+    }
+    if (videoCount > 1 || (videoCount === 1 && assetCount > 1)) {
+      throw new AppError("Pinterest supports one video asset or one-or-more image assets per pin", {
+        code: "pinterest_multi_video_unsupported",
         statusCode: 422
       });
     }

@@ -1,6 +1,6 @@
 ---
 name: socialclaw
-description: Use when an OpenClaw-compatible agent needs to connect customer social accounts, upload media, schedule posts, inspect publish status, or manage a SocialClaw workspace through the deployed SocialClaw service. Relevant for X, Facebook Pages, Instagram Business, Instagram standalone, LinkedIn profile/page, TikTok, Discord, Telegram, YouTube, Reddit, and WordPress workflows.
+description: Use when an OpenClaw-compatible agent needs to connect customer social accounts, upload media, schedule posts, inspect publish status, or manage a SocialClaw workspace through the deployed SocialClaw service. Relevant for X, Facebook Pages, Instagram Business, Instagram standalone, LinkedIn profile/page, Pinterest, TikTok, Discord, Telegram, YouTube, Reddit, and WordPress workflows.
 homepage: https://getsocialclaw.com
 metadata: {"openclaw":{"homepage":"https://getsocialclaw.com","primaryEnv":"SC_API_KEY","requires":{"env":["SC_API_KEY"]},"install":[{"id":"npm","kind":"node","package":"socialclaw","bins":["socialclaw","social"],"label":"Install SocialClaw CLI (npm)"}]}}
 ---
@@ -105,8 +105,10 @@ curl -sS \
    - Instagram Business linked to a Facebook Page
    - Instagram standalone professional accounts
    - LinkedIn profile and LinkedIn page are separate providers
+   - Pinterest is board-centric; inspect capabilities/actions before assuming sections, catalogs, or advanced surfaces
 5. If a provider workflow is not supported, say so directly instead of inventing a workaround.
-6. Avoid echoing full API keys back into chat.
+6. Treat Pinterest product, collection, and idea surfaces as capability-gated or beta unless account capabilities/actions explicitly advertise them.
+7. Avoid echoing full API keys back into chat.
 
 ## Main workflow
 
@@ -134,6 +136,12 @@ Start a connection flow:
 
 ```bash
 socialclaw accounts connect --provider youtube --open
+```
+
+Start a Pinterest OAuth connection:
+
+```bash
+socialclaw accounts connect --provider pinterest --open
 ```
 
 Connect Telegram manually with a bot token and chat target:
@@ -197,6 +205,7 @@ Supported providers:
 - `instagram`
 - `linkedin`
 - `linkedin_page`
+- `pinterest`
 - `tiktok`
 - `discord`
 - `telegram`

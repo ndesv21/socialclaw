@@ -66,6 +66,13 @@ export function inferPublishTarget(accountOrDescriptor) {
     return { provider: "tiktok", accountType: "tiktok_user" };
   }
 
+  if (provider === "pinterest" || handle.startsWith("pinterest:")) {
+    if (handle.startsWith("pinterest:board:")) {
+      return { provider: "pinterest", accountType: "pinterest_board" };
+    }
+    return { provider: "pinterest", accountType: "pinterest_account" };
+  }
+
   if (provider === "telegram" || handle.startsWith("telegram:")) {
     return { provider: "telegram", accountType: accountType || "telegram_chat" };
   }
@@ -288,6 +295,21 @@ export function describePublishSettingsForAccount(accountOrDescriptor) {
       discovery: {
         publishShape: "video_only",
         mediaDelivery: "tiktok_pulls_public_video_url"
+      }
+    };
+  }
+
+  if (target.provider === "pinterest") {
+    return {
+      supported: target.accountType === "pinterest_board",
+      target,
+      fields: [],
+      discovery: {
+        publishShape:
+          target.accountType === "pinterest_board"
+            ? "board_centric_standard_video_or_multi_image_pin"
+            : "board_target_discovery_required",
+        mediaDelivery: "socialclaw_submits_media_to_pinterest_api"
       }
     };
   }
@@ -724,6 +746,11 @@ export function validatePublishSettingsForTarget({ provider, account, settings, 
       stitchEnabled:
         normalizedSettings.stitchEnabled === undefined ? true : Boolean(normalizedSettings.stitchEnabled)
     };
+  }
+
+  if (target.provider === "pinterest") {
+    assertNoUnknownSettings(normalizedSettings, [], "pinterest_settings_unsupported");
+    return {};
   }
 
   if (target.provider === "telegram" && String(target.accountType || "").startsWith("telegram_")) {
