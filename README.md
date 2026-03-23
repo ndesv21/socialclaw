@@ -66,15 +66,14 @@ Publish that folder to ClawHub if you want agents to discover and use SocialClaw
 
 ## Publishing
 
-This public repo is the only npm publish source for the `socialclaw` package.
+Publish new CLI releases from this repository.
 
 ```bash
-cd /Users/nardibraho/Desktop/socialclaw-public
 npm publish --access public
 ```
 
 ## Notes
 
-- This public repo does not include the private SocialClaw backend.
-- End users connect accounts inside the hosted SocialClaw product.
+- Users connect accounts inside the hosted SocialClaw dashboard.
 - The CLI works against a deployed SocialClaw workspace via API key auth.
+- The dashboard and API live at `https://getsocialclaw.com`.
