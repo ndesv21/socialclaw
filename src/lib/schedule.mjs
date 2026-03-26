@@ -1,3 +1,4 @@
+// Synced from ../socialclaw via tools/sync-public-cli.mjs. Edit the private repo, then re-run this sync.
 import fs from "node:fs/promises";
 import path from "node:path";
 import { AppError } from "./errors.mjs";
@@ -171,7 +172,8 @@ function normalizeAssets(post) {
       }
       return {
         id: `asset_${index + 1}`,
-        url
+        url,
+        managed: false
       };
     }
 
@@ -192,7 +194,13 @@ function normalizeAssets(post) {
 
     return {
       id: String(item.id || `asset_${index + 1}`).trim(),
-      url
+      url,
+      managed: Boolean(item.managed),
+      originalFilename: item.originalFilename ? String(item.originalFilename).trim() : null,
+      mime: item.mime ? String(item.mime).trim() : null,
+      kind: item.kind ? String(item.kind).trim().toLowerCase() : null,
+      size: Number.isFinite(Number(item.size)) ? Number(item.size) : null,
+      altText: item.altText ? String(item.altText).trim() : null
     };
   });
 
@@ -206,7 +214,8 @@ function normalizeAssets(post) {
   if (explicitMediaLink && assets.length === 0) {
     assets.push({
       id: "asset_1",
-      url: explicitMediaLink
+      url: explicitMediaLink,
+      managed: false
     });
   }
 
@@ -278,9 +287,9 @@ function normalizePost(post, rootTimezone, metadata = {}) {
     });
   }
 
-  if (!normalized.name) {
-    throw new AppError("Each post must include a name", {
-      code: "name_required",
+  if (!normalized.name && !normalized.description && !normalized.mediaLink) {
+    throw new AppError("Each post must include text, a title, or media", {
+      code: "post_content_required",
       statusCode: 422
     });
   }
@@ -649,8 +658,39 @@ export function buildCampaignClonePayload(campaignGraph, { mode = "draft" } = {}
             payload.reply_to_step_id = step.parentStepId;
           }
 
-          if (Array.isArray(step.assets) && step.assets.length > 1) {
-            payload.assets = step.assets.map((asset) => asset.url);
+          const serializedAssets = Array.isArray(step.assets)
+            ? step.assets
+                .map((asset) => {
+                  if (!asset?.url) {
+                    return null;
+                  }
+                  if (
+                    asset.managed ||
+                    asset.id ||
+                    asset.altText ||
+                    asset.mime ||
+                    asset.kind ||
+                    Number.isFinite(Number(asset.size)) ||
+                    asset.originalFilename
+                  ) {
+                    return {
+                      ...(asset.id ? { id: asset.id } : {}),
+                      url: asset.url,
+                      ...(asset.managed ? { managed: true } : {}),
+                      ...(asset.originalFilename ? { originalFilename: asset.originalFilename } : {}),
+                      ...(asset.mime ? { mime: asset.mime } : {}),
+                      ...(asset.kind ? { kind: asset.kind } : {}),
+                      ...(Number.isFinite(Number(asset.size)) ? { size: Number(asset.size) } : {}),
+                      ...(asset.altText ? { altText: asset.altText } : {})
+                    };
+                  }
+                  return asset.url;
+                })
+                .filter(Boolean)
+            : [];
+
+          if (serializedAssets.length > 1 || (serializedAssets.length === 1 && typeof serializedAssets[0] !== "string")) {
+            payload.assets = serializedAssets;
           } else if (step.mediaLink) {
             payload.media_link = step.mediaLink;
           }

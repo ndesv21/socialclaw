@@ -1,0 +1,8 @@
+interface:
+  display_name: "SocialClaw"
+  short_description: "Connect accounts and publish through SocialClaw."
+  brand_color: "#ff6b5e"
+  default_prompt: "Use $socialclaw to connect accounts, upload media, and publish through a SocialClaw workspace."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,3 +1,4 @@
+// Synced from ../socialclaw via tools/sync-public-cli.mjs. Edit the private repo, then re-run this sync.
 import crypto from "node:crypto";
 
 export function createId(prefix) {

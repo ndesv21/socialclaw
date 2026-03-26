@@ -10,7 +10,6 @@ If the CLI is installed, it gives the agent or user a shorter way to do the same
 - upload media
 - validate and apply schedules
 - inspect posts, runs, analytics, and workspace health
-- install the packaged Claude Code command
 
 Install:
 
@@ -32,21 +31,10 @@ socialclaw login --api-key <workspace-key>
 
 This stores the key locally and uses `https://getsocialclaw.com` by default.
 
-The workspace must also have an active trial or paid plan for CLI/API execution. If commands return `plan_required` or `subscription_*`, direct the user to:
-
-- `https://getsocialclaw.com/pricing`
-- `https://getsocialclaw.com/dashboard`
-
 If the user has no key yet:
 
 ```bash
 open https://getsocialclaw.com/dashboard
-```
-
-Install the Claude Code command:
-
-```bash
-socialclaw install --claude
 ```
 
 ## Accounts
@@ -79,7 +67,7 @@ socialclaw accounts connect --provider pinterest --open
 socialclaw accounts capabilities --provider pinterest --json
 ```
 
-Pinterest is board-centric. After connecting, inspect account actions before assuming sections, catalogs, or advanced product/collection/idea surfaces are available:
+Pinterest is board-centric. After connecting, inspect account actions before assuming sections, catalogs, or advanced product, collection, or idea surfaces are available:
 
 ```bash
 socialclaw accounts actions --account-id <account-id> --json
@@ -92,7 +80,7 @@ Connect Telegram manually with a bot token and chat target:
 socialclaw accounts connect --provider telegram --bot-token <bot-token> --chat-id @yourchannel --json
 ```
 
-Use a numeric `chat_id` when posting into a group/supergroup that does not expose a stable username.
+Use a numeric `chat_id` when posting into a group or supergroup that does not expose a stable username.
 
 Connect Discord manually with a channel webhook URL:
 
@@ -100,7 +88,7 @@ Connect Discord manually with a channel webhook URL:
 socialclaw accounts connect --provider discord --webhook-url <discord-webhook-url> --json
 ```
 
-Use a channel webhook URL created from the target Discord server/channel integrations screen.
+Use a channel webhook URL created from the target Discord server or channel integrations screen.
 
 Disconnect an account:
 
@@ -143,7 +131,7 @@ Apply a schedule:
 socialclaw apply -f schedule.json --json
 ```
 
-Inspect a stored campaign/run:
+Inspect a stored campaign or run:
 
 ```bash
 socialclaw campaigns inspect --run-id <run-id> --json
@@ -214,7 +202,7 @@ socialclaw analytics account --account-id <account-id> --json
 socialclaw analytics run --run-id <run-id> --json
 ```
 
-Pinterest pin analytics and Pinterest account analytics use the same commands after the target board/account is connected.
+Pinterest pin analytics and Pinterest account analytics use the same commands after the target board or account is connected.
 
 Force a refresh:
 
@@ -230,12 +218,3 @@ socialclaw connections health --json
 socialclaw jobs list --limit 20 --json
 socialclaw usage --json
 ```
-
-## What the CLI does not do
-
-- It does not replace the SocialClaw backend.
-- It does not contain provider OAuth implementations by itself.
-- It does not eliminate the need for a workspace API key.
-- It is a client for the hosted service, not a standalone scheduler.
-- Telegram is a manual bot-token provider, not an OAuth browser redirect.
-- Pinterest product, collection, and idea surfaces should be treated as capability-gated or beta until account capabilities/actions confirm them.

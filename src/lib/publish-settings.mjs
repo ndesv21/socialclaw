@@ -1,12 +1,15 @@
+// Synced from ../socialclaw via tools/sync-public-cli.mjs. Edit the private repo, then re-run this sync.
 import { AppError } from "./errors.mjs";
 
 const X_REPLY_OPTIONS = ["everyone", "mentionedUsers", "following"];
 const FACEBOOK_PAGE_MODES = ["auto", "feed", "photo", "video"];
 const INSTAGRAM_MODES = ["auto", "image", "reel"];
 const TIKTOK_PRIVACY_OPTIONS = ["SELF_ONLY"];
+const TELEGRAM_PARSE_MODES = ["none", "HTML", "MarkdownV2"];
 const YOUTUBE_PRIVACY_OPTIONS = ["private", "unlisted", "public"];
 const WORDPRESS_POST_STATUSES = ["publish", "draft", "pending", "private"];
 const WORDPRESS_POST_TYPES = ["post", "page"];
+const PINTEREST_PIN_MODES = ["auto", "standard", "video", "multi_image", "product"];
 
 function normalizeSettingsInput(settings) {
   if (settings === undefined || settings === null) {
@@ -66,13 +69,6 @@ export function inferPublishTarget(accountOrDescriptor) {
     return { provider: "tiktok", accountType: "tiktok_user" };
   }
 
-  if (provider === "pinterest" || handle.startsWith("pinterest:")) {
-    if (handle.startsWith("pinterest:board:")) {
-      return { provider: "pinterest", accountType: "pinterest_board" };
-    }
-    return { provider: "pinterest", accountType: "pinterest_account" };
-  }
-
   if (provider === "telegram" || handle.startsWith("telegram:")) {
     return { provider: "telegram", accountType: accountType || "telegram_chat" };
   }
@@ -110,6 +106,13 @@ export function inferPublishTarget(accountOrDescriptor) {
       return { provider: "linkedin_page", accountType: "linkedin_page" };
     }
     return { provider: "linkedin", accountType: "linkedin_member" };
+  }
+
+  if (provider === "pinterest" || handle.startsWith("pinterest:")) {
+    if (handle.startsWith("pinterest:board:")) {
+      return { provider: "pinterest", accountType: "pinterest_board" };
+    }
+    return { provider: "pinterest", accountType: "pinterest_user" };
   }
 
   if (provider === "youtube" || handle.startsWith("youtube:channel:")) {
@@ -299,21 +302,6 @@ export function describePublishSettingsForAccount(accountOrDescriptor) {
     };
   }
 
-  if (target.provider === "pinterest") {
-    return {
-      supported: target.accountType === "pinterest_board",
-      target,
-      fields: [],
-      discovery: {
-        publishShape:
-          target.accountType === "pinterest_board"
-            ? "board_centric_standard_video_or_multi_image_pin"
-            : "board_target_discovery_required",
-        mediaDelivery: "socialclaw_submits_media_to_pinterest_api"
-      }
-    };
-  }
-
   if (target.provider === "telegram" && String(target.accountType || "").startsWith("telegram_")) {
     return {
       supported: true,
@@ -324,7 +312,7 @@ export function describePublishSettingsForAccount(accountOrDescriptor) {
           type: "enum",
           required: false,
           default: "none",
-          options: ["none", "HTML", "MarkdownV2"],
+          options: TELEGRAM_PARSE_MODES,
           description: "Optional Telegram message formatting mode. Use `none` for plain text."
         },
         {
@@ -403,6 +391,70 @@ export function describePublishSettingsForAccount(accountOrDescriptor) {
       discovery: {
         publishShape: "text_or_image_post",
         mediaDelivery: "socialclaw_uploads_images_to_linkedin"
+      }
+    };
+  }
+
+  if (target.provider === "pinterest" && target.accountType === "pinterest_board") {
+    return {
+      supported: true,
+      target,
+      fields: [
+        {
+          id: "pinMode",
+          type: "enum",
+          required: false,
+          default: "auto",
+          options: PINTEREST_PIN_MODES,
+          description: "Choose the Pinterest pin mode. `auto` follows the supplied media. `product` is capability-gated by Pinterest."
+        },
+        {
+          id: "link",
+          type: "string",
+          required: false,
+          description: "Optional destination URL to attach to the pin."
+        },
+        {
+          id: "altText",
+          type: "string",
+          required: false,
+          description: "Optional alt text for the primary creative."
+        },
+        {
+          id: "boardSectionId",
+          type: "string",
+          required: false,
+          description: "Optional Pinterest board section id inside the selected board."
+        },
+        {
+          id: "dominantColor",
+          type: "string",
+          required: false,
+          description: "Optional hex dominant color, for example `#6E7874`."
+        },
+        {
+          id: "isAffiliateLink",
+          type: "boolean",
+          required: false,
+          default: false,
+          description: "Used only for Pinterest product pin mode when the connected app has the required beta access."
+        },
+        {
+          id: "coverImageUrl",
+          type: "string",
+          required: false,
+          description: "Optional cover image URL for Pinterest video pins."
+        },
+        {
+          id: "coverImageKeyFrameTime",
+          type: "number",
+          required: false,
+          description: "Optional keyframe timestamp in seconds for Pinterest video pin cover image selection."
+        }
+      ],
+      discovery: {
+        publishShape: "board_scoped_pin",
+        mediaDelivery: "pinterest_fetches_images_or_socialclaw_uploads_video_to_pinterest"
       }
     };
   }
@@ -748,11 +800,6 @@ export function validatePublishSettingsForTarget({ provider, account, settings, 
     };
   }
 
-  if (target.provider === "pinterest") {
-    assertNoUnknownSettings(normalizedSettings, [], "pinterest_settings_unsupported");
-    return {};
-  }
-
   if (target.provider === "telegram" && String(target.accountType || "").startsWith("telegram_")) {
     const normalized = normalizeSettingsInput(settings);
     assertNoUnknownSettings(
@@ -763,8 +810,8 @@ export function validatePublishSettingsForTarget({ provider, account, settings, 
 
     if (normalized.parseMode !== undefined) {
       const value = String(normalized.parseMode || "none").trim();
-      if (!["none", "HTML", "MarkdownV2"].includes(value)) {
-        throw new AppError("parseMode must be one of: none, HTML, MarkdownV2", {
+      if (!TELEGRAM_PARSE_MODES.includes(value)) {
+        throw new AppError(`parseMode must be one of: ${TELEGRAM_PARSE_MODES.join(", ")}`, {
           statusCode: 422,
           code: "telegram_parse_mode_invalid"
         });
@@ -833,6 +880,83 @@ export function validatePublishSettingsForTarget({ provider, account, settings, 
   if (target.provider === "linkedin_page" && target.accountType === "linkedin_page") {
     assertNoUnknownSettings(normalizedSettings, [], "linkedin_page_settings_unsupported");
     return {};
+  }
+
+  if (target.provider === "pinterest" && target.accountType === "pinterest_board") {
+    assertNoUnknownSettings(
+      normalizedSettings,
+      [
+        "pinMode",
+        "link",
+        "destinationLink",
+        "altText",
+        "boardSectionId",
+        "dominantColor",
+        "isAffiliateLink",
+        "coverImageUrl",
+        "coverImageKeyFrameTime"
+      ],
+      "pinterest_settings_unsupported"
+    );
+
+    const pinMode = String(normalizedSettings.pinMode || "auto").trim().toLowerCase();
+    if (!PINTEREST_PIN_MODES.includes(pinMode)) {
+      throw new AppError(`Invalid Pinterest pinMode: ${pinMode}`, {
+        statusCode: 422,
+        code: "pinterest_pin_mode_invalid",
+        details: {
+          supportedValues: PINTEREST_PIN_MODES
+        }
+      });
+    }
+
+    if (pinMode === "product") {
+      throw new AppError("Pinterest product pin mode is capability-gated by Pinterest and is not available in SocialClaw's generic publish flow yet", {
+        statusCode: 422,
+        code: "pinterest_product_pin_beta_required"
+      });
+    }
+
+    if (pinMode === "video" && mediaLink && !isVideoMedia(mediaLink)) {
+      throw new AppError("Pinterest pinMode `video` requires a video media URL", {
+        statusCode: 422,
+        code: "pinterest_video_required"
+      });
+    }
+
+    if (pinMode === "multi_image" && mediaLink && !isImageMedia(mediaLink)) {
+      throw new AppError("Pinterest pinMode `multi_image` requires image assets", {
+        statusCode: 422,
+        code: "pinterest_multi_image_required"
+      });
+    }
+
+    if (normalizedSettings.coverImageKeyFrameTime !== undefined && !Number.isFinite(Number(normalizedSettings.coverImageKeyFrameTime))) {
+      throw new AppError("Pinterest coverImageKeyFrameTime must be a number", {
+        statusCode: 422,
+        code: "pinterest_cover_keyframe_invalid"
+      });
+    }
+
+    const link = String(normalizedSettings.link || normalizedSettings.destinationLink || "").trim() || null;
+    const altText = String(normalizedSettings.altText || "").trim() || null;
+    const boardSectionId = String(normalizedSettings.boardSectionId || "").trim() || null;
+    const dominantColor = String(normalizedSettings.dominantColor || "").trim() || null;
+    const coverImageUrl = String(normalizedSettings.coverImageUrl || "").trim() || null;
+
+    return {
+      pinMode,
+      link,
+      altText,
+      boardSectionId,
+      dominantColor,
+      isAffiliateLink: Boolean(normalizedSettings.isAffiliateLink),
+      coverImageUrl,
+      coverImageKeyFrameTime:
+        normalizedSettings.coverImageKeyFrameTime === undefined
+          ? null
+          : Number(normalizedSettings.coverImageKeyFrameTime)
+    };
   }
 
   if (target.provider === "youtube" && target.accountType === "youtube_channel") {

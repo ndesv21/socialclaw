@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// Synced from ../socialclaw via tools/sync-public-cli.mjs. Edit the private repo, then re-run this sync.
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
@@ -83,6 +84,9 @@ Workspace and analytics:
   ${PRIMARY_COMMAND} workspace health [--json]
   ${PRIMARY_COMMAND} connections health [--provider <${PROVIDER_HELP}>] [--json]
   ${PRIMARY_COMMAND} jobs list [--status <status>] [--provider <${PROVIDER_HELP}>] [--account <handle>] [--run-id <id>] [--limit <n>] [--json]
+
+Integrations:
+  ${PRIMARY_COMMAND} install --claude
 
 Docs:
   https://getsocialclaw.com
@@ -1443,8 +1447,7 @@ async function main() {
         if (provider === "telegram") {
           body.botToken = requireArg(args, "bot-token");
           body.chatId = requireArg(args, "chat-id");
-        }
-        if (provider === "discord") {
+        } else if (provider === "discord") {
           body.webhookUrl = requireArg(args, "webhook-url");
         }
 
@@ -1507,6 +1510,27 @@ async function main() {
       throw new Error(`Unknown accounts subcommand: ${subcommand}`);
     }
 
+    if (command === "install") {
+      const target = args.claude ? "claude" : null;
+      if (!target) {
+        console.error("Usage: socialclaw install --claude");
+        process.exit(2);
+      }
+
+      const pkgDir = new URL("..", import.meta.url).pathname;
+      const skillSrc = path.join(pkgDir, "skill", "claude", "socialclaw.md");
+      const destDir = path.join(os.homedir(), ".claude", "commands");
+      const destFile = path.join(destDir, "socialclaw.md");
+
+      await fs.mkdir(destDir, { recursive: true });
+      await fs.copyFile(skillSrc, destFile);
+
+      console.log(`SocialClaw skill installed for Claude Code.`);
+      console.log(`Location: ${destFile}`);
+      console.log(`Use /socialclaw in any Claude Code session to activate it.`);
+      return;
+    }
+
     console.error(`Unknown command: ${command}`);
     printUsage();
     process.exit(2);
@@ -1518,7 +1542,13 @@ async function main() {
     };
 
     const isAuth = payload.code === "api_key_invalid" || payload.code === "auth_missing";
-    const isSubscription = payload.code === "subscription_inactive";
+    const isSubscription = [
+      "plan_required",
+      "subscription_inactive",
+      "subscription_past_due",
+      "subscription_paused",
+      "subscription_canceled"
+    ].includes(payload.code);
     const exitCode = isAuth ? 3 : isSubscription ? 4 : 6;
 
     if (args.json) {
@@ -1528,6 +1558,9 @@ async function main() {
     console.error(`Error: ${payload.message || error.message}`);
     if (payload.code) {
       console.error(`Code: ${payload.code}`);
+    }
+    if (isSubscription && payload.details?.upgradePath) {
+      console.error(`Upgrade: ${payload.details.upgradePath}`);
     }
     process.exit(exitCode);
   }

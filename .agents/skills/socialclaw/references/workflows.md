@@ -35,11 +35,6 @@ curl -sS \
   "https://getsocialclaw.com/v1/keys/validate"
 ```
 
-An API key alone is not enough for execution. The workspace must also have an active trial or paid plan. If requests fail with `plan_required` or `subscription_*`, direct the user to:
-
-- `https://getsocialclaw.com/pricing`
-- `https://getsocialclaw.com/dashboard`
-
 ### Start account connection
 
 ```bash
@@ -83,7 +78,7 @@ curl -sS \
   "https://getsocialclaw.com/v1/connections/start"
 ```
 
-Use a numeric `chatId` for groups/supergroups when you do not have a stable `@channelusername`.
+Use a numeric `chatId` for groups or supergroups when you do not have a stable `@channelusername`.
 
 ### Connect Discord manually
 
@@ -139,7 +134,7 @@ curl -sS \
   "https://getsocialclaw.com/v1/assets/upload"
 ```
 
-### Validate a post/campaign
+### Validate a post or campaign
 
 ```bash
 curl -sS \
@@ -187,88 +182,3 @@ curl -sS \
   -H "Authorization: Bearer $SC_API_KEY" \
   "https://getsocialclaw.com/v1/runs/<run-id>"
 ```
-
-## Minimal schedule patterns
-
-### Single post
-
-```json
-{
-  "posts": [
-    {
-      "account": "youtube:channel:123",
-      "title": "Weekly update",
-      "description": "Short description",
-      "status": "scheduled",
-      "publishAt": "2026-03-22T14:00:00.000Z",
-      "assets": [
-        {
-          "mediaLink": "https://getsocialclaw.com/media/asset-id/token/video.mp4"
-        }
-      ]
-    }
-  ]
-}
-```
-
-### Draft campaign
-
-```json
-{
-  "campaigns": [
-    {
-      "name": "Launch",
-      "mode": "draft",
-      "targets": [
-        {
-          "account": "linkedin:member:123",
-          "steps": [
-            {
-              "title": "Launch post",
-              "description": "We shipped.",
-              "publishAt": "2026-03-22T14:00:00.000Z"
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
-```
-
-### Board-centric Pinterest pin
-
-```json
-{
-  "posts": [
-    {
-      "account": "pinterest:board:123",
-      "provider": "pinterest",
-      "name": "Spring launch pin",
-      "description": "Board-centric pin scheduled through SocialClaw.",
-      "status": "scheduled",
-      "publishAt": "2026-03-22T14:00:00.000Z",
-      "assets": [
-        {
-          "url": "https://getsocialclaw.com/media/asset-id/token/image-1.jpg"
-        },
-        {
-          "url": "https://getsocialclaw.com/media/asset-id/token/image-2.jpg"
-        }
-      ]
-    }
-  ]
-}
-```
-
-Use one image asset for a standard pin, one video asset for a video pin, or multiple image assets for a multi-image pin.
-
-## When to stop and tell the user something is unsupported
-
-- Facebook personal profile publishing
-- Personal Instagram accounts
-- TikTok image posts
-- Telegram OAuth browser auth
-- Pinterest product, collection, or idea publishing when the connected account does not advertise those capabilities
-- Reddit native media/gallery upload
-- YouTube community posts or Shorts-specific flows

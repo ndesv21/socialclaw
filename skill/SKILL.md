@@ -42,6 +42,7 @@ Do not use this skill for editing the SocialClaw codebase itself. This bundle is
 - Required env: `SC_API_KEY`
 - Hosted base URL: `https://getsocialclaw.com`
 - Optional CLI: `socialclaw` (or `social`) if already installed
+- Workspace status: an active trial or paid plan is required for CLI/API execution through the workspace key
 
 ## Optional CLI
 
@@ -53,6 +54,7 @@ Prefer it when it is already installed or the user wants command-line examples. 
 - upload assets
 - validate, preview, and apply schedules
 - inspect posts, runs, analytics, usage, and workspace health
+- install the packaged Claude Code command with `socialclaw install --claude`
 
 The CLI is optional. This skill does not require it to function.
 
@@ -95,20 +97,26 @@ curl -sS \
   "https://getsocialclaw.com/v1/keys/validate"
 ```
 
+If execution fails with `plan_required`, `subscription_inactive`, `subscription_past_due`, `subscription_paused`, or `subscription_canceled`, direct the user to:
+
+- `https://getsocialclaw.com/pricing`
+- `https://getsocialclaw.com/dashboard`
+
 ## Operating rules
 
 1. Start by confirming the user has a SocialClaw workspace API key.
 2. If the user does not have a key yet, send them to `https://getsocialclaw.com/dashboard` to sign in with Google and create one.
-3. Never ask the user for provider app secrets. End users connect accounts inside SocialClaw.
-4. Prefer explicit provider/account-type language:
+3. A workspace API key alone is not sufficient for execution. If billing-related errors appear, route the user to pricing or dashboard billing instead of retrying commands.
+4. Never ask the user for provider app secrets. End users connect accounts inside SocialClaw.
+5. Prefer explicit provider/account-type language:
    - Facebook Pages, not Facebook personal profiles
    - Instagram Business linked to a Facebook Page
    - Instagram standalone professional accounts
    - LinkedIn profile and LinkedIn page are separate providers
    - Pinterest is board-centric; inspect capabilities/actions before assuming sections, catalogs, or advanced surfaces
-5. If a provider workflow is not supported, say so directly instead of inventing a workaround.
-6. Treat Pinterest product, collection, and idea surfaces as capability-gated or beta unless account capabilities/actions explicitly advertise them.
-7. Avoid echoing full API keys back into chat.
+6. If a provider workflow is not supported, say so directly instead of inventing a workaround.
+7. Treat Pinterest product, collection, and idea surfaces as capability-gated or beta unless account capabilities/actions explicitly advertise them.
+8. Avoid echoing full API keys back into chat.
 
 ## Main workflow
 
@@ -178,6 +186,12 @@ Apply a schedule:
 
 ```bash
 socialclaw apply -f schedule.json --json
+```
+
+Install the Claude Code command:
+
+```bash
+socialclaw install --claude
 ```
 
 Inspect a post:

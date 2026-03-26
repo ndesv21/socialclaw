@@ -1,7 +1,7 @@
 {
   "name": "socialclaw",
-  "version": "0.1.5",
-  "description": "SocialClaw command-line client for connecting accounts and publishing posts",
+  "version": "0.1.6",
+  "description": "Agent-first social publishing CLI and skill bundle for SocialClaw workspaces",
   "type": "module",
   "license": "MIT",
   "author": "SocialClaw",
@@ -19,7 +19,11 @@
     "publishing",
     "cli",
     "oauth",
-    "socialclaw"
+    "socialclaw",
+    "ai agents",
+    "openclaw",
+    "claude code",
+    "social publishing"
   ],
   "bin": {
     "social": "src/index.mjs",
@@ -36,7 +40,7 @@
   },
   "scripts": {
     "test": "node --check src/index.mjs",
-    "pack:check": "npm pack",
+    "pack:check": "npm pack --dry-run",
     "publish:package": "npm publish --access public"
   },
   "publishConfig": {
