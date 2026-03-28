@@ -13,84 +13,122 @@ const CONFIG_PATH = path.join(CONFIG_DIR, "config.json");
 const DEFAULT_BASE_URL = process.env.SC_BASE_URL || "https://getsocialclaw.com";
 const PRIMARY_COMMAND = "socialclaw";
 const COMMAND_ALIAS = "social";
-const PROVIDER_HELP =
+const PROVIDER_CHOICES =
   "x|facebook|instagram_business|instagram|linkedin|linkedin_page|pinterest|youtube|reddit|discord|meta|tiktok|telegram|wordpress";
+const HELP_DIVIDER = "+------------------------------------------------------------------------------+";
+const HELP_WIDTH = 76;
+const HELP_LOGO = String.raw`
+   ____             _       _ ____ _
+  / ___|  ___   ___(_) __ _| / ___| | __ ___      __
+  \___ \ / _ \ / __| |/ _\` | \___ \ |/ _\` \ \ /\ / /
+   ___) | (_) | (__| | (_| | |___) | | (_| |\ V  V /
+  |____/ \___/ \___|_|\__,_|_|____/|_|\__,_| \_/\_/
+`;
+
+function wrapHelpLine(line) {
+  const source = String(line ?? "");
+  if (!source) {
+    return [""];
+  }
+
+  const chunks = [];
+  let remaining = source;
+
+  while (remaining.length > HELP_WIDTH) {
+    const slice = remaining.slice(0, HELP_WIDTH + 1);
+    const breakAt = Math.max(slice.lastIndexOf(" "), slice.lastIndexOf("] "), slice.lastIndexOf("> "));
+    const index = breakAt > 24 ? breakAt : HELP_WIDTH;
+    chunks.push(remaining.slice(0, index).trimEnd());
+    remaining = remaining.slice(index).trimStart();
+  }
+
+  chunks.push(remaining);
+  return chunks;
+}
+
+function renderHelpSection(title, lines) {
+  return [
+    HELP_DIVIDER,
+    `| ${title.padEnd(HELP_WIDTH, " ")} |`,
+    HELP_DIVIDER,
+    ...lines.flatMap((line) => wrapHelpLine(line).map((part) => `| ${part.padEnd(HELP_WIDTH, " ")} |`)),
+    HELP_DIVIDER
+  ].join("\n");
+}
 
 function printUsage() {
-  console.log(`SocialClaw CLI
+  const sections = [
+    renderHelpSection("SOCIALCLAW CLI", [
+      "Agent-ready social publishing from your terminal.",
+      "",
+      `Primary command : ${PRIMARY_COMMAND}`,
+      `Short alias      : ${COMMAND_ALIAS}`,
+      `Docs             : ${DEFAULT_BASE_URL}`
+    ]),
+    renderHelpSection("QUICK START", [
+      `${PRIMARY_COMMAND} login`,
+      `${PRIMARY_COMMAND} login --api-key <key> [--base-url ${DEFAULT_BASE_URL}]`,
+      `${PRIMARY_COMMAND} accounts list --json`,
+      `${PRIMARY_COMMAND} assets upload --file ./image.png --json`,
+      `${PRIMARY_COMMAND} validate -f schedule.json --json`,
+      `${PRIMARY_COMMAND} apply -f schedule.json --json`
+    ]),
+    renderHelpSection("AUTH", [
+      `${PRIMARY_COMMAND} login`,
+      `${PRIMARY_COMMAND} login --api-key <key> [--base-url <url>]`
+    ]),
+    renderHelpSection("SCHEDULES AND CAMPAIGNS", [
+      `${PRIMARY_COMMAND} validate -f <schedule.(yaml|yml|json)> [--json]`,
+      `${PRIMARY_COMMAND} apply -f <schedule.(yaml|yml|json)> [--idempotency-key <key>] [--json]`,
+      `${PRIMARY_COMMAND} campaigns preview -f <schedule.(yaml|yml|json)> [--json]`,
+      `${PRIMARY_COMMAND} campaigns inspect --run-id <id> [--json]`,
+      `${PRIMARY_COMMAND} campaigns clone --run-id <id> [--output <file>] [--json]`,
+      `${PRIMARY_COMMAND} publish-draft --run-id <id> [--start-at <iso8601>] [--json]`
+    ]),
+    renderHelpSection("POSTS AND RUNS", [
+      `${PRIMARY_COMMAND} posts list [--run-id <id>] [--status <status>] [--account <handle>] [--provider <provider>] [--campaign-id <id>] [--limit <n>] [--json]`,
+      `${PRIMARY_COMMAND} posts get --post-id <id> [--json]`,
+      `${PRIMARY_COMMAND} posts attempts --post-id <id> [--json]`,
+      `${PRIMARY_COMMAND} posts reconcile --post-id <id> [--json]`,
+      `${PRIMARY_COMMAND} status --run-id <id> [--json]`,
+      `${PRIMARY_COMMAND} runs inspect --run-id <id> [--json]`,
+      `${PRIMARY_COMMAND} retry --post-id <id> [--json]`,
+      `${PRIMARY_COMMAND} cancel --post-id <id> [--json]`,
+      `${PRIMARY_COMMAND} view --run-id <id> [--format terminal|html] [--output <file>]`
+    ]),
+    renderHelpSection("ACCOUNTS", [
+      `${PRIMARY_COMMAND} accounts list [--provider <provider>] [--json]`,
+      `${PRIMARY_COMMAND} accounts capabilities [--account-id <id>] [--provider <provider>] [--json]`,
+      `${PRIMARY_COMMAND} accounts settings --account-id <id> [--json]`,
+      `${PRIMARY_COMMAND} accounts actions --account-id <id> [--json]`,
+      `${PRIMARY_COMMAND} accounts action --account-id <id> --action <action-id> [--body <json> | --input <file>] [--json]`,
+      `${PRIMARY_COMMAND} accounts connect --provider <provider> [--open] [--json]`,
+      `${PRIMARY_COMMAND} accounts connect --provider telegram --bot-token <token> --chat-id <@channel|chat_id> [--json]`,
+      `${PRIMARY_COMMAND} accounts connect --provider discord --webhook-url <url> [--json]`,
+      `${PRIMARY_COMMAND} accounts status --connection-id <id> [--json]`,
+      `${PRIMARY_COMMAND} accounts disconnect --account-id <id> [--json]`
+    ]),
+    renderHelpSection("MEDIA AND WORKSPACE", [
+      `${PRIMARY_COMMAND} assets upload --file <path> [--json]`,
+      `${PRIMARY_COMMAND} assets delete --asset-id <id> [--retention-days <days>] [--json]`,
+      `${PRIMARY_COMMAND} analytics post --post-id <id> [--window <window>] [--json]`,
+      `${PRIMARY_COMMAND} analytics account --account-id <id> [--window <window>] [--json]`,
+      `${PRIMARY_COMMAND} analytics run --run-id <id> [--window <window>] [--json]`,
+      `${PRIMARY_COMMAND} analytics refresh --post-id <id> [--window <window>] [--json]`,
+      `${PRIMARY_COMMAND} usage [--json]`,
+      `${PRIMARY_COMMAND} workspace health [--json]`,
+      `${PRIMARY_COMMAND} connections health [--provider <provider>] [--json]`,
+      `${PRIMARY_COMMAND} jobs list [--status <status>] [--provider <provider>] [--account <handle>] [--run-id <id>] [--limit <n>] [--json]`
+    ]),
+    renderHelpSection("SUPPORTED PROVIDERS", [
+      PROVIDER_CHOICES.replaceAll("|", " | ")
+    ]),
+    renderHelpSection("INTEGRATIONS", [
+      `${PRIMARY_COMMAND} install --claude`
+    ])
+  ];
 
-Connect accounts, upload media, schedule posts, and inspect workspace activity.
-
-Commands:
-  ${PRIMARY_COMMAND}
-  ${COMMAND_ALIAS}
-
-Quick start:
-  ${PRIMARY_COMMAND} login
-  ${PRIMARY_COMMAND} login --api-key <key> [--base-url https://getsocialclaw.com]
-  ${COMMAND_ALIAS} login
-  ${COMMAND_ALIAS} login --api-key <key> [--base-url https://getsocialclaw.com]
-  ${PRIMARY_COMMAND} accounts list --json
-  ${PRIMARY_COMMAND} accounts connect --provider pinterest --open
-  ${PRIMARY_COMMAND} assets upload --file ./image.png --json
-  ${PRIMARY_COMMAND} validate -f schedule.json --json
-  ${PRIMARY_COMMAND} apply -f schedule.json --json
-
-Authentication:
-  ${PRIMARY_COMMAND} login
-  ${PRIMARY_COMMAND} login --api-key <key> [--base-url <url>]
-
-Schedules and campaigns:
-  ${PRIMARY_COMMAND} validate -f <schedule.(yaml|yml|json)> [--json]
-  ${PRIMARY_COMMAND} apply -f <schedule.(yaml|yml|json)> [--idempotency-key <key>] [--json]
-  ${PRIMARY_COMMAND} campaigns preview -f <schedule.(yaml|yml|json)> [--json]
-  ${PRIMARY_COMMAND} campaigns inspect --run-id <id> [--json]
-  ${PRIMARY_COMMAND} campaigns clone --run-id <id> [--output <file>] [--json]
-  ${PRIMARY_COMMAND} publish-draft --run-id <id> [--start-at <iso8601>] [--json]
-
-Posts and runs:
-  ${PRIMARY_COMMAND} posts list [--run-id <id>] [--status <status>] [--account <handle>] [--provider <${PROVIDER_HELP}>] [--campaign-id <id>] [--limit <n>] [--json]
-  ${PRIMARY_COMMAND} posts get --post-id <id> [--json]
-  ${PRIMARY_COMMAND} posts attempts --post-id <id> [--json]
-  ${PRIMARY_COMMAND} posts reconcile --post-id <id> [--json]
-  ${PRIMARY_COMMAND} status --run-id <id> [--json]
-  ${PRIMARY_COMMAND} runs inspect --run-id <id> [--json]
-  ${PRIMARY_COMMAND} retry --post-id <id> [--json]
-  ${PRIMARY_COMMAND} cancel --post-id <id> [--json]
-  ${PRIMARY_COMMAND} view --run-id <id> [--format terminal|html] [--output <file>]
-
-Accounts:
-  ${PRIMARY_COMMAND} accounts list [--provider <${PROVIDER_HELP}>] [--json]
-  ${PRIMARY_COMMAND} accounts capabilities [--account-id <id>] [--provider <${PROVIDER_HELP}>] [--json]
-  ${PRIMARY_COMMAND} accounts settings --account-id <id> [--json]
-  ${PRIMARY_COMMAND} accounts actions --account-id <id> [--json]
-  ${PRIMARY_COMMAND} accounts action --account-id <id> --action <action-id> [--body <json> | --input <file>] [--json]
-  ${PRIMARY_COMMAND} accounts connect --provider <${PROVIDER_HELP}> [--open] [--json]
-  ${PRIMARY_COMMAND} accounts connect --provider telegram --bot-token <token> --chat-id <@channel|chat_id> [--json]
-  ${PRIMARY_COMMAND} accounts connect --provider discord --webhook-url <url> [--json]
-  ${PRIMARY_COMMAND} accounts status --connection-id <id> [--json]
-  ${PRIMARY_COMMAND} accounts disconnect --account-id <id> [--json]
-
-Media:
-  ${PRIMARY_COMMAND} assets upload --file <path> [--json]
-  ${PRIMARY_COMMAND} assets delete --asset-id <id> [--retention-days <days>] [--json]
-
-Workspace and analytics:
-  ${PRIMARY_COMMAND} analytics post --post-id <id> [--window <window>] [--json]
-  ${PRIMARY_COMMAND} analytics account --account-id <id> [--window <window>] [--json]
-  ${PRIMARY_COMMAND} analytics run --run-id <id> [--window <window>] [--json]
-  ${PRIMARY_COMMAND} analytics refresh --post-id <id> [--window <window>] [--json]
-  ${PRIMARY_COMMAND} usage [--json]
-  ${PRIMARY_COMMAND} workspace health [--json]
-  ${PRIMARY_COMMAND} connections health [--provider <${PROVIDER_HELP}>] [--json]
-  ${PRIMARY_COMMAND} jobs list [--status <status>] [--provider <${PROVIDER_HELP}>] [--account <handle>] [--run-id <id>] [--limit <n>] [--json]
-
-Integrations:
-  ${PRIMARY_COMMAND} install --claude
-
-Docs:
-  https://getsocialclaw.com
-`);
+  console.log([HELP_LOGO.trimEnd(), "", ...sections].join("\n\n"));
 }
 
 function parseArgs(argv) {

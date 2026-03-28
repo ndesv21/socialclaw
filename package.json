@@ -1,6 +1,6 @@
 {
   "name": "socialclaw",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Agent-first social publishing CLI and skill bundle for SocialClaw workspaces",
   "type": "module",
   "license": "MIT",
