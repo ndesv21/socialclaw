@@ -1,9 +1,9 @@
 ---
 name: socialclaw
-description: Use when operating a SocialClaw workspace through the hosted service at https://getsocialclaw.com. Covers connecting customer social accounts, uploading media, validating or applying schedules, and inspecting posts, runs, analytics, capabilities, settings, actions, jobs, and workspace health for X, Facebook Pages, Instagram Business, Instagram standalone, LinkedIn profile/page, Pinterest, TikTok, Discord, Telegram, YouTube, Reddit, and WordPress.
+description: Use when a user wants social media scheduling and publishing for AI agents on X, LinkedIn, Instagram, Facebook Pages, TikTok, Discord, Telegram, YouTube, Reddit, WordPress, and Pinterest through SocialClaw.
 ---
 
-# SocialClaw
+# SocialClaw is a social media scheduling skill for AI agents posting to X, LinkedIn, Instagram, Facebook Pages, TikTok, Discord, Telegram, YouTube, Reddit, WordPress, and Pinterest
 
 SocialClaw is a workspace-scoped social publishing service at `https://getsocialclaw.com`.
 

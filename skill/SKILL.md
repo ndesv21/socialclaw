@@ -1,11 +1,11 @@
 ---
 name: socialclaw
-description: Use when an OpenClaw-compatible agent needs to connect customer social accounts, upload media, schedule posts, inspect publish status, or manage a SocialClaw workspace through the deployed SocialClaw service. Relevant for X, Facebook Pages, Instagram Business, Instagram standalone, LinkedIn profile/page, Pinterest, TikTok, Discord, Telegram, YouTube, Reddit, and WordPress workflows.
+description: Use when a user wants social media scheduling and publishing for AI agents on X, LinkedIn, Instagram, Facebook Pages, TikTok, Discord, Telegram, YouTube, Reddit, WordPress, and Pinterest through SocialClaw.
 homepage: https://getsocialclaw.com
 metadata: {"openclaw":{"homepage":"https://getsocialclaw.com","primaryEnv":"SC_API_KEY","requires":{"env":["SC_API_KEY"]},"install":[{"id":"npm","kind":"node","package":"socialclaw","bins":["socialclaw","social"],"label":"Install SocialClaw CLI (npm)"}]}}
 ---
 
-# SocialClaw
+# SocialClaw is a social media scheduling skill for AI agents posting to X, LinkedIn, Instagram, Facebook Pages, TikTok, Discord, Telegram, YouTube, Reddit, WordPress, and Pinterest
 
 SocialClaw is a workspace-scoped social publishing service at `https://getsocialclaw.com`.
 

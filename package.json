@@ -1,7 +1,7 @@
 {
   "name": "socialclaw",
   "version": "0.1.8",
-  "description": "Agent-first social publishing CLI and skill bundle for SocialClaw workspaces",
+  "description": "Social media scheduling CLI and OpenClaw skill for AI agents posting to X, LinkedIn, Instagram, Facebook Pages, TikTok, Discord, Telegram, YouTube, Reddit, WordPress, and Pinterest.",
   "type": "module",
   "license": "MIT",
   "author": "SocialClaw",
@@ -15,6 +15,11 @@
   },
   "keywords": [
     "social media",
+    "social media scheduling",
+    "social media scheduler",
+    "social media publishing",
+    "social media api",
+    "publishing api",
     "scheduler",
     "publishing",
     "cli",
@@ -22,8 +27,20 @@
     "socialclaw",
     "ai agents",
     "openclaw",
+    "clawhub",
     "claude code",
-    "social publishing"
+    "codex",
+    "x",
+    "linkedin",
+    "instagram",
+    "facebook pages",
+    "tiktok",
+    "discord",
+    "telegram",
+    "youtube",
+    "reddit",
+    "wordpress",
+    "pinterest"
   ],
   "bin": {
     "social": "src/index.mjs",

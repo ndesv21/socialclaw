@@ -1,6 +1,6 @@
 interface:
   display_name: "SocialClaw"
-  short_description: "Connect accounts, validate schedules, and publish through SocialClaw."
+  short_description: "Social media scheduling for AI agents on X, LinkedIn, Instagram, Facebook Pages, TikTok, Discord, Telegram, YouTube, Reddit, WordPress, and Pinterest."
   brand_color: "#ff6b5e"
   default_prompt: "Use $socialclaw to connect accounts, upload media, validate or apply schedules, and inspect publishing through a SocialClaw workspace."
 

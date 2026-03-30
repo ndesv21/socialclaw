@@ -1,6 +1,8 @@
 # SocialClaw
 
-Public home for the SocialClaw CLI and agent skill bundle.
+SocialClaw is a social media scheduling CLI and OpenClaw skill for AI agents posting to X, LinkedIn, Instagram, Facebook Pages, TikTok, Discord, Telegram, YouTube, Reddit, WordPress, and Pinterest.
+
+It is the public home for the SocialClaw CLI and agent skill bundle.
 
 This repo is the public integration surface for SocialClaw:
 - the npm CLI package
