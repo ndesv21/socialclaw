@@ -89,11 +89,13 @@ function printUsage() {
       `${PRIMARY_COMMAND} posts list [--run-id <id>] [--status <status>] [--account <handle>] [--provider <provider>] [--campaign-id <id>] [--limit <n>] [--json]`,
       `${PRIMARY_COMMAND} posts get --post-id <id> [--json]`,
       `${PRIMARY_COMMAND} posts attempts --post-id <id> [--json]`,
+      `${PRIMARY_COMMAND} posts delete --post-id <id> [--json]`,
       `${PRIMARY_COMMAND} posts reconcile --post-id <id> [--json]`,
       `${PRIMARY_COMMAND} status --run-id <id> [--json]`,
       `${PRIMARY_COMMAND} runs inspect --run-id <id> [--json]`,
       `${PRIMARY_COMMAND} retry --post-id <id> [--json]`,
       `${PRIMARY_COMMAND} cancel --post-id <id> [--json]`,
+      `${PRIMARY_COMMAND} delete --post-id <id> [--json]`,
       `${PRIMARY_COMMAND} view --run-id <id> [--format terminal|html] [--output <file>]`
     ]),
     renderHelpSection("ACCOUNTS", [
@@ -1073,6 +1075,18 @@ async function main() {
         return;
       }
 
+      if (subcommand === "delete") {
+        const postId = requireArg(args, "post-id");
+        const response = await apiRequest("POST", `/v1/posts/${postId}/delete`, auth);
+
+        if (args.json) {
+          exitJson(0, response);
+        }
+
+        console.log(`Post ${response.post.id} deleted from ${response.post.provider}`);
+        return;
+      }
+
       throw new Error(`Unknown posts subcommand: ${subcommand}`);
     }
 
@@ -1217,6 +1231,17 @@ async function main() {
         exitJson(0, response);
       }
       console.log(`Post ${response.post.id} canceled`);
+      return;
+    }
+
+    if (command === "delete") {
+      const postId = requireArg(args, "post-id");
+      const auth = await withAuthConfig();
+      const response = await apiRequest("POST", `/v1/posts/${postId}/delete`, auth);
+      if (args.json) {
+        exitJson(0, response);
+      }
+      console.log(`Post ${response.post.id} deleted from ${response.post.provider}`);
       return;
     }
 
