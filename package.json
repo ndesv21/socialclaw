@@ -49,6 +49,8 @@
   "files": [
     "src",
     "skill",
+    "skills",
+    ".claude-plugin",
     "README.md",
     "LICENSE"
   ],
@@ -58,7 +60,10 @@
   "scripts": {
     "test": "node --check src/index.mjs",
     "pack:check": "npm pack --dry-run",
-    "publish:package": "npm publish --access public"
+    "publish:package": "npm publish --access public",
+    "sync:version": "node tools/sync-plugin-version.mjs",
+    "sync:references": "node tools/sync-references.mjs",
+    "version": "node tools/sync-plugin-version.mjs && node tools/sync-references.mjs && git add .claude-plugin/ skills/socialclaw/references/"
   },
   "publishConfig": {
     "access": "public"

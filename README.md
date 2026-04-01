@@ -7,6 +7,7 @@ It is the public home for the SocialClaw CLI and agent skill bundle.
 This repo is the public integration surface for SocialClaw:
 - the npm CLI package
 - the OpenClaw/ClawHub skill bundle
+- the Claude Code plugin (`skills/socialclaw/`) and marketplace (`.claude-plugin/`)
 - the Claude Code command file installed by `socialclaw install --claude`
 - public usage docs and examples
 
@@ -71,13 +72,24 @@ socialclaw usage --json
 
 ## Claude Code
 
-Install the packaged Claude Code command:
+### Plugin install (recommended)
+
+Install as a proper Claude Code plugin from inside Claude Code:
+
+```shell
+/plugin marketplace add ndesv21/socialclaw
+/plugin install socialclaw@socialclaw
+```
+
+This installs the `/socialclaw:socialclaw` skill and enables auto-invocation — Claude will use SocialClaw automatically when you ask about scheduling, posting, or managing social accounts.
+
+### Command file install (alternative)
 
 ```bash
 socialclaw install --claude
 ```
 
-That copies the bundled command file into `~/.claude/commands/socialclaw.md`.
+That copies the bundled command file into `~/.claude/commands/socialclaw.md` and registers `/socialclaw`.
 
 ## What the CLI covers
 
@@ -90,23 +102,30 @@ That copies the bundled command file into `~/.claude/commands/socialclaw.md`.
 
 Pinterest is exposed as the `pinterest` provider in the public CLI and skill bundle. Its main publish target is board-centric, with support for standard pins, video pins, multi-image pins, board creation and section/catalog discovery, plus pin/account analytics. Product, collection, and idea surfaces should be treated as capability-gated or beta rather than assumed for every workspace.
 
-## Skill
+## Skills and plugin
 
-The OpenClaw-compatible skill bundle lives in:
-- [skill](./skill)
+The OpenClaw-compatible skill bundle lives in [`skill/`](./skill). Publish that folder to ClawHub for OpenClaw/ClawHub agent discovery.
 
-Publish that folder to ClawHub if you want agents to discover and use SocialClaw through a hosted skill.
+The Claude Code plugin lives in [`skills/socialclaw/`](./skills/socialclaw) with the marketplace manifest at [`.claude-plugin/`](./.claude-plugin).
 
 ## Publishing
 
-Publish new CLI releases from this repository.
+Bump the version with `npm version` — it automatically syncs the version into `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` and stages the changes:
 
 ```bash
+npm version patch   # or minor / major
+git push && git push --tags
 npm publish --access public
+```
+
+To sync reference files manually after editing `skill/references/`:
+
+```bash
+npm run sync:references
 ```
 
 ## Notes
 
 - Users connect accounts inside the hosted SocialClaw dashboard.
 - The dashboard and API live at `https://getsocialclaw.com`.
-- The npm package also ships the public skill docs and Claude Code command asset.
+- The npm package ships the CLI, skill docs, Claude Code plugin, and command asset.
