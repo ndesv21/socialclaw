@@ -15,7 +15,7 @@
         "url": "https://github.com/ndesv21/socialclaw.git"
       },
       "description": "Social media scheduling and publishing for AI agents",
-      "version": "0.1.9",
+      "version": "0.1.10",
       "author": {
         "name": "SocialClaw"
       },
@@ -41,7 +41,13 @@
         "pinterest"
       ],
       "category": "productivity",
-      "tags": ["social-media", "scheduling", "publishing", "agents"]
+      "tags": [
+        "social-media",
+        "scheduling",
+        "publishing",
+        "agents"
+      ]
     }
-  ]
+  ],
+  "version": "0.1.10"
 }
