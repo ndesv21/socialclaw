@@ -136,32 +136,58 @@ socialclaw workspace health --json
 socialclaw usage --json
 ```
 
-## Claude Code
+## Agent integrations
 
-### Plugin install
+### Claude Code plugin
 
-Install as a proper Claude Code plugin from inside Claude Code:
+Install the packaged Claude Code plugin from inside Claude Code:
 
 ```shell
 /plugin marketplace add ndesv21/socialclaw
 /plugin install socialclaw@socialclaw
 ```
 
-This installs the `/socialclaw:socialclaw` skill and enables auto-invocation when a user asks about scheduling, posting, or managing social accounts.
+This installs the marketplace plugin from [`skills/socialclaw/`](./skills/socialclaw) with metadata from [`.claude-plugin/`](./.claude-plugin). It is the cleanest option if you want Claude to auto-invoke SocialClaw when a user asks to connect accounts, upload media, schedule posts, inspect delivery, or check analytics.
 
-### Command file install
+### Claude slash command and skill file
+
+If you want the explicit `/socialclaw` command instead of the full plugin flow:
 
 ```bash
 socialclaw install --claude
 ```
 
-That copies the bundled command file into `~/.claude/commands/socialclaw.md` and registers `/socialclaw`.
+That installs the bundled command file from [`skill/claude/socialclaw.md`](./skill/claude/socialclaw.md) into `~/.claude/commands/socialclaw.md`.
 
-## Skills and plugin
+Use this path when you want a lightweight Claude Code setup that:
+- exposes one clear SocialClaw command
+- keeps the workspace API key flow explicit
+- still lets Claude use the same hosted SocialClaw API and CLI workflow
 
-The OpenClaw-compatible skill bundle lives in [`skill/`](./skill). Publish that folder to ClawHub for OpenClaw and ClawHub agent discovery.
+### OpenClaw and ClawHub
 
-The Claude Code plugin lives in [`skills/socialclaw/`](./skills/socialclaw) with the marketplace manifest at [`.claude-plugin/`](./.claude-plugin).
+The OpenClaw-compatible skill bundle lives in [`skill/`](./skill).
+
+It is designed for OpenClaw and other compatible agent runtimes that can load a `SKILL.md`, work from a workspace API key, and call either:
+- the SocialClaw HTTP API directly
+- the `socialclaw` CLI as a client for the hosted service
+
+This is the bundle to publish to ClawHub for OpenClaw discovery.
+
+### Other agents
+
+SocialClaw is not limited to one agent framework. The repo also includes an agent manifest in [`skill/agents/openai.yaml`](./skill/agents/openai.yaml), and the CLI works well for any runtime that can execute shell commands or make HTTP requests.
+
+That makes SocialClaw a good fit for:
+- Codex and terminal-native agent workflows
+- Claude Code via plugin or command file
+- OpenClaw and ClawHub skills
+- custom internal agents that need one stable publishing surface for social channels
+
+In practice, all of these share the same model:
+- connect customer accounts inside SocialClaw
+- create a workspace API key
+- upload media, validate, apply, inspect, analyze, and optionally delete supported posts through the hosted service
 
 ## Supported providers
 
