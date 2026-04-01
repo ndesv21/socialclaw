@@ -1,0 +1,30 @@
+{
+  "name": "socialclaw",
+  "version": "0.1.9",
+  "description": "Social media scheduling and publishing for AI agents on X, LinkedIn, Instagram, Facebook, TikTok, Discord, Telegram, YouTube, Reddit, WordPress, and Pinterest.",
+  "author": {
+    "name": "SocialClaw",
+    "url": "https://getsocialclaw.com"
+  },
+  "homepage": "https://getsocialclaw.com",
+  "repository": "https://github.com/ndesv21/socialclaw",
+  "license": "MIT",
+  "keywords": [
+    "social-media",
+    "scheduling",
+    "publishing",
+    "agents",
+    "x",
+    "twitter",
+    "linkedin",
+    "instagram",
+    "facebook",
+    "tiktok",
+    "discord",
+    "telegram",
+    "youtube",
+    "reddit",
+    "wordpress",
+    "pinterest"
+  ]
+}

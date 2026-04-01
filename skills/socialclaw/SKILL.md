@@ -3,16 +3,11 @@ name: socialclaw
 description: Social media scheduling and publishing via SocialClaw. Use when connecting accounts, scheduling posts, uploading media, or managing campaigns on X, LinkedIn, Instagram, Facebook, TikTok, Discord, Telegram, YouTube, Reddit, WordPress, or Pinterest.
 ---
 
-# SocialClaw is a social media scheduling skill for AI agents posting to X, LinkedIn, Instagram, Facebook Pages, TikTok, Discord, Telegram, YouTube, Reddit, WordPress, and Pinterest
+# SocialClaw
 
 SocialClaw is a workspace-scoped social publishing service at `https://getsocialclaw.com`.
 
-## What this skill is
-
-This skill is an instruction layer for the hosted SocialClaw service.
-
-It does not contain the SocialClaw backend or the provider integrations themselves.
-It teaches Claude Code how to:
+This skill is an instruction layer for the hosted SocialClaw service. It teaches Claude Code how to:
 - get or use a workspace API key
 - call the SocialClaw HTTP API
 - understand provider and account-type caveats
@@ -180,6 +175,7 @@ socialclaw posts get --post-id <id> --json
 socialclaw posts attempts --post-id <id> --json
 socialclaw posts reconcile --post-id <id> --json
 socialclaw runs inspect --run-id <id> --json
+socialclaw status --run-id <id> --json
 socialclaw retry --post-id <id> --json
 socialclaw cancel --post-id <id> --json
 socialclaw view --run-id <id> --format terminal
@@ -322,3 +318,9 @@ curl -sS \
 **WordPress** (`wordpress`) — WordPress.com or Jetpack-connected sites. SocialClaw uploads remote media before publishing.
 
 **Legacy Meta** (`meta`) — older workspaces only. Prefer explicit `facebook` and `instagram_business` for new workspaces.
+
+## Read next
+
+- For full HTTP API recipes and schedule formats, read [references/workflows.md](references/workflows.md).
+- For the optional CLI and command examples, read [references/cli.md](references/cli.md).
+- For provider and account-type caveats, read [references/providers.md](references/providers.md).
