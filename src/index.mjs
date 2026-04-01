@@ -200,14 +200,31 @@ async function saveConfig(config) {
 
 async function apiRequest(method, endpoint, { apiKey, body, baseUrl }) {
   const url = `${baseUrl.replace(/\/$/, "")}${endpoint}`;
-  const response = await fetch(url, {
-    method,
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${apiKey}`
-    },
-    body: body ? JSON.stringify(body) : undefined
-  });
+  let response;
+  try {
+    response = await fetch(url, {
+      method,
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${apiKey}`
+      },
+      body: body ? JSON.stringify(body) : undefined
+    });
+  } catch (error) {
+    const fetchError = new Error(error?.message || "Network request failed");
+    fetchError.payload = {
+      ok: false,
+      code: "network_error",
+      message: error?.message || "Network request failed",
+      details: {
+        url,
+        cause: error?.cause?.message || null,
+        causeCode: error?.cause?.code || null,
+        stack: error?.stack || null
+      }
+    };
+    throw fetchError;
+  }
 
   let payload;
   try {
