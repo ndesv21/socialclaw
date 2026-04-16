@@ -268,31 +268,51 @@ export function describePublishSettingsForAccount(accountOrDescriptor) {
         {
           id: "privacyLevel",
           type: "enum",
-          required: false,
-          default: "SELF_ONLY",
+          required: true,
           options: TIKTOK_PRIVACY_OPTIONS,
-          description: "Privacy level for the TikTok publish request."
+          description: "Choose who can view this TikTok post before you publish."
         },
         {
           id: "duetEnabled",
           type: "boolean",
           required: false,
-          default: true,
-          description: "Allow duets on the published video."
+          default: false,
+          description: "Allow duets on the published TikTok video."
         },
         {
           id: "commentEnabled",
           type: "boolean",
           required: false,
-          default: true,
-          description: "Allow comments on the published video."
+          default: false,
+          description: "Allow comments on the published TikTok video."
         },
         {
           id: "stitchEnabled",
           type: "boolean",
           required: false,
-          default: true,
-          description: "Allow stitch on the published video."
+          default: false,
+          description: "Allow stitch on the published TikTok video."
+        },
+        {
+          id: "commercialContentToggle",
+          type: "boolean",
+          required: false,
+          default: false,
+          description: "Turn this on if the TikTok post promotes your brand, a third party, or both."
+        },
+        {
+          id: "brandOrganicToggle",
+          type: "boolean",
+          required: false,
+          default: false,
+          description: "Declare that this TikTok post promotes your own brand."
+        },
+        {
+          id: "brandContentToggle",
+          type: "boolean",
+          required: false,
+          default: false,
+          description: "Declare that this TikTok post contains branded content for another brand."
         }
       ],
       discovery: {
@@ -774,11 +794,25 @@ export function validatePublishSettingsForTarget({ provider, account, settings, 
   if (target.provider === "tiktok" && target.accountType === "tiktok_user") {
     assertNoUnknownSettings(
       normalizedSettings,
-      ["privacyLevel", "duetEnabled", "commentEnabled", "stitchEnabled"],
+      [
+        "privacyLevel",
+        "duetEnabled",
+        "commentEnabled",
+        "stitchEnabled",
+        "commercialContentToggle",
+        "brandOrganicToggle",
+        "brandContentToggle"
+      ],
       "tiktok_settings_unsupported"
     );
 
-    const privacyLevel = String(normalizedSettings.privacyLevel || "SELF_ONLY");
+    const privacyLevel = String(normalizedSettings.privacyLevel || "").trim();
+    if (!privacyLevel) {
+      throw new AppError("TikTok privacyLevel is required", {
+        statusCode: 422,
+        code: "tiktok_privacy_level_required"
+      });
+    }
     if (!TIKTOK_PRIVACY_OPTIONS.includes(privacyLevel)) {
       throw new AppError(`Invalid TikTok privacyLevel: ${privacyLevel}`, {
         statusCode: 422,
@@ -789,14 +823,41 @@ export function validatePublishSettingsForTarget({ provider, account, settings, 
       });
     }
 
+    const duetEnabled =
+      normalizedSettings.duetEnabled === undefined ? false : Boolean(normalizedSettings.duetEnabled);
+    const commentEnabled =
+      normalizedSettings.commentEnabled === undefined ? false : Boolean(normalizedSettings.commentEnabled);
+    const stitchEnabled =
+      normalizedSettings.stitchEnabled === undefined ? false : Boolean(normalizedSettings.stitchEnabled);
+    const brandOrganicToggle = Boolean(normalizedSettings.brandOrganicToggle);
+    const brandContentToggle = Boolean(normalizedSettings.brandContentToggle);
+    const commercialContentToggle =
+      normalizedSettings.commercialContentToggle === undefined
+        ? brandOrganicToggle || brandContentToggle
+        : Boolean(normalizedSettings.commercialContentToggle);
+
+    if (commercialContentToggle && !brandOrganicToggle && !brandContentToggle) {
+      throw new AppError("Select at least one TikTok commercial content disclosure option", {
+        statusCode: 422,
+        code: "tiktok_commercial_content_required"
+      });
+    }
+
+    if (brandContentToggle && privacyLevel === "SELF_ONLY") {
+      throw new AppError("TikTok branded content posts cannot use SELF_ONLY privacy", {
+        statusCode: 422,
+        code: "tiktok_brand_content_private_invalid"
+      });
+    }
+
     return {
       privacyLevel,
-      duetEnabled:
-        normalizedSettings.duetEnabled === undefined ? true : Boolean(normalizedSettings.duetEnabled),
-      commentEnabled:
-        normalizedSettings.commentEnabled === undefined ? true : Boolean(normalizedSettings.commentEnabled),
-      stitchEnabled:
-        normalizedSettings.stitchEnabled === undefined ? true : Boolean(normalizedSettings.stitchEnabled)
+      duetEnabled,
+      commentEnabled,
+      stitchEnabled,
+      commercialContentToggle,
+      brandOrganicToggle,
+      brandContentToggle
     };
   }
 
