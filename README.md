@@ -93,7 +93,7 @@ socialclaw analytics post --post-id <id> --json
 ## Watch the Demo
 
 <p align="center">
-  <a href="https://www.youtube.com/watch?v=Qay2x2nEgQs">
+  <a href="https://www.youtube.com/watch?v=Biy8saQqf44">
     <img src="https://raw.githubusercontent.com/ndesv21/socialclaw/main/.github/readme/socialclaw-demo-poster.png" alt="Watch the SocialClaw demo video" width="820">
   </a>
 </p>
