@@ -39,6 +39,12 @@ socialclaw login
 socialclaw accounts list --json
 ```
 
+**Install as an AI agent skill** (Claude Code, Cursor, Cline, Codex, and more):
+
+```bash
+npx skills add ndesv21/socialclaw
+```
+
 ## What the CLI covers
 
 - workspace API key login and hosted dashboard bootstrap
@@ -206,6 +212,8 @@ In practice, all of these share the same model:
 - WordPress
 
 Pinterest is exposed as the `pinterest` provider in the public CLI and skill bundle. Its main publish target is board-centric, with support for standard pins, video pins, multi-image pins, board creation and section or catalog discovery, plus pin and account analytics. Product, collection, and idea surfaces should be treated as capability-gated or beta rather than assumed for every workspace.
+
+TikTok supports one video or one photo gallery per post. Photo galleries can include up to 35 images and expose `autoAddMusic` plus `photoCoverIndex`; selecting a specific TikTok song or sound is not available through TikTok's Content Posting API.
 
 ## Publishing
 
