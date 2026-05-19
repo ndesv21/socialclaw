@@ -195,6 +195,16 @@ In practice, all of these share the same model:
 - create a workspace API key
 - upload media, validate, apply, inspect, analyze, and optionally delete supported posts through the hosted service
 
+### X/Twitter research before scheduling
+
+SocialClaw handles social scheduling and publishing. If an OpenClaw workflow needs public X/Twitter context before a schedule is finalized, use [TweetClaw](https://github.com/Xquik-dev/tweetclaw) as the separate X/Twitter automation plugin:
+
+```bash
+openclaw plugins install @xquik/tweetclaw
+```
+
+Use TweetClaw to search tweets, search tweet replies, export followers, look up users, check media, monitor tweets, process webhooks, or run giveaway draws. Then use SocialClaw to validate, schedule, publish, inspect, and analyze the final campaign across connected accounts.
+
 ## Supported providers
 
 - X

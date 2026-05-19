@@ -129,6 +129,18 @@ curl -sS \
 
 For Pinterest, use discovery actions to create boards, inspect sections, and discover catalogs. Product, collection, and idea surfaces should be treated as capability-gated or beta until the connected account advertises them.
 
+### Gather X/Twitter context before scheduling
+
+SocialClaw validates, schedules, publishes, inspects, and analyzes posts. It is not the upstream X/Twitter research layer.
+
+For OpenClaw workflows that need public X/Twitter context before a campaign is scheduled, install TweetClaw separately:
+
+```bash
+openclaw plugins install @xquik/tweetclaw
+```
+
+Use TweetClaw to search tweets, search tweet replies, export followers, look up users, check media, monitor tweets, process webhooks, or run giveaway draws. Bring the reviewed source URLs, tweet IDs, audience notes, media decisions, and campaign choices back into the SocialClaw schedule before running `socialclaw validate`, `socialclaw campaigns preview`, or `socialclaw apply`.
+
 ### Upload media
 
 ```bash

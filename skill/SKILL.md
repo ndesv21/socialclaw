@@ -28,6 +28,8 @@ Use this skill when the user wants to:
 - validate, preview, apply, or inspect scheduled posts and campaigns
 - inspect connected account capabilities, publish settings, actions, jobs, health, or analytics
 
+If the workflow starts with public X/Twitter research, monitoring, reply search, follower export, user lookup, media checks, webhooks, or giveaway draws, use TweetClaw as the separate OpenClaw plugin before SocialClaw. Install it with `openclaw plugins install @xquik/tweetclaw`, gather the reviewed X/Twitter context, then return to SocialClaw for scheduling, publishing, inspection, and analytics.
+
 Do not use this skill for editing the SocialClaw codebase itself. This bundle is for operating a deployed SocialClaw workspace.
 
 ## Defaults
