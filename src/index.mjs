@@ -14,7 +14,7 @@ const DEFAULT_BASE_URL = process.env.SC_BASE_URL || "https://getsocialclaw.com";
 const PRIMARY_COMMAND = "socialclaw";
 const COMMAND_ALIAS = "social";
 const PROVIDER_CHOICES =
-  "x|facebook|instagram_business|instagram|linkedin|linkedin_page|pinterest|youtube|reddit|discord|meta|tiktok|telegram|wordpress";
+  "x|facebook|instagram_business|instagram|linkedin|linkedin_page|pinterest|youtube|reddit|discord|meta|snapchat|tiktok|telegram|wordpress";
 const HELP_DIVIDER = "+------------------------------------------------------------------------------+";
 const HELP_WIDTH = 76;
 const HELP_LOGO = String.raw`

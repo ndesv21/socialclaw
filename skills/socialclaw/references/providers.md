@@ -5,6 +5,7 @@
 - Use `facebook` for Facebook Pages.
 - Personal Facebook profiles are not publish targets.
 - Media: one effective image or video per post.
+- Facebook Page videos require the connected app and Page token to include `publish_video`; reconnect the Page after that permission is granted.
 
 ## Instagram Business
 
@@ -16,6 +17,7 @@
 
 - Use `instagram` for standalone professional accounts through Instagram Login.
 - This is separate from `instagram_business`.
+- Meta may return creator accounts as `MEDIA_CREATOR`; this is a professional account type.
 - Publishing requires media.
 
 ## X
@@ -48,9 +50,11 @@
 
 ## TikTok
 
-- Use `tiktok` for video posting only.
-- Requires a public video URL or a SocialClaw-hosted video URL.
-- Non-video TikTok posts are not supported.
+- Use `tiktok` for one video or one photo gallery per post.
+- Photo galleries support one to 35 public image URLs.
+- `autoAddMusic` lets TikTok add recommended music automatically to photo posts; selecting a specific song or sound is not exposed by the Content Posting API.
+- `photoCoverIndex` selects the zero-based cover image for photo posts.
+- Do not mix image and video assets in one TikTok post.
 
 ## Telegram
 

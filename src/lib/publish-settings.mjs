@@ -1,10 +1,20 @@
 // Synced from ../socialclaw via tools/sync-public-cli.mjs. Edit the private repo, then re-run this sync.
 import { AppError } from "./errors.mjs";
 
-const X_REPLY_OPTIONS = ["everyone", "mentionedUsers", "following"];
+const X_REPLY_DEFAULT = "";
+const X_REPLY_LEGACY_DEFAULT = "everyone";
+const X_REPLY_RESTRICTIVE_OPTIONS = ["following", "mentionedUsers", "subscribers", "verified"];
+const X_REPLY_OPTIONS = [X_REPLY_DEFAULT, ...X_REPLY_RESTRICTIVE_OPTIONS];
 const FACEBOOK_PAGE_MODES = ["auto", "feed", "photo", "video"];
+const FACEBOOK_VIDEO_UPLOAD_MODES = ["auto", "native", "remote_url"];
 const INSTAGRAM_MODES = ["auto", "image", "reel"];
-const TIKTOK_PRIVACY_OPTIONS = ["SELF_ONLY"];
+const SNAPCHAT_MODES = ["spotlight", "story", "saved_story"];
+const TIKTOK_PRIVACY_OPTIONS = [
+  "PUBLIC_TO_EVERYONE",
+  "FOLLOWER_OF_CREATOR",
+  "MUTUAL_FOLLOW_FRIENDS",
+  "SELF_ONLY"
+];
 const TELEGRAM_PARSE_MODES = ["none", "HTML", "MarkdownV2"];
 const YOUTUBE_PRIVACY_OPTIONS = ["private", "unlisted", "public"];
 const WORDPRESS_POST_STATUSES = ["publish", "draft", "pending", "private"];
@@ -47,6 +57,11 @@ function isVideoMedia(mediaLink) {
 function isImageMedia(mediaLink) {
   const clean = String(mediaLink || "").split("?")[0].toLowerCase();
   return [".jpg", ".jpeg", ".png", ".webp"].some((ext) => clean.endsWith(ext));
+}
+
+function isMp4Media(mediaLink) {
+  const clean = String(mediaLink || "").split("?")[0].toLowerCase();
+  return clean.endsWith(".mp4");
 }
 
 export function inferPublishTarget(accountOrDescriptor) {
@@ -99,6 +114,10 @@ export function inferPublishTarget(accountOrDescriptor) {
       return { provider: "instagram_business", accountType: "instagram_business_linked" };
     }
     return { provider: "instagram", accountType: "instagram_standalone" };
+  }
+
+  if (provider === "snapchat" || handle.startsWith("snapchat:")) {
+    return { provider: "snapchat", accountType: "snapchat_public_profile" };
   }
 
   if (provider === "linkedin" || handle.startsWith("linkedin:")) {
@@ -158,9 +177,9 @@ export function describePublishSettingsForAccount(accountOrDescriptor) {
           id: "replyControl",
           type: "enum",
           required: false,
-          default: "everyone",
+          default: X_REPLY_DEFAULT,
           options: X_REPLY_OPTIONS,
-          description: "Controls who can reply to the X post."
+          description: "Leave unset for everyone, or choose an X reply_settings restriction."
         }
       ],
       discovery: {
@@ -182,11 +201,19 @@ export function describePublishSettingsForAccount(accountOrDescriptor) {
           default: "auto",
           options: FACEBOOK_PAGE_MODES,
           description: "Choose whether SocialClaw should publish as a feed post, photo, or video. `auto` follows the media type."
+        },
+        {
+          id: "facebookVideoUploadMode",
+          type: "enum",
+          required: false,
+          default: "native",
+          options: FACEBOOK_VIDEO_UPLOAD_MODES,
+          description: "Choose how Facebook Page videos are delivered. `native` uploads bytes from SocialClaw; `remote_url` asks Facebook to fetch the public media URL."
         }
       ],
       discovery: {
         publishShape: "single_page_post",
-        mediaDelivery: "meta_fetches_public_media_url"
+        mediaDelivery: "socialclaw_uploads_facebook_videos_natively"
       }
     };
   }
@@ -203,11 +230,19 @@ export function describePublishSettingsForAccount(accountOrDescriptor) {
           default: "auto",
           options: FACEBOOK_PAGE_MODES,
           description: "Choose whether SocialClaw should publish as a feed post, photo, or video. `auto` follows the media type."
+        },
+        {
+          id: "facebookVideoUploadMode",
+          type: "enum",
+          required: false,
+          default: "native",
+          options: FACEBOOK_VIDEO_UPLOAD_MODES,
+          description: "Choose how Facebook Page videos are delivered. `native` uploads bytes from SocialClaw; `remote_url` asks Facebook to fetch the public media URL."
         }
       ],
       discovery: {
         publishShape: "single_page_post",
-        mediaDelivery: "meta_fetches_public_media_url"
+        mediaDelivery: "socialclaw_uploads_facebook_videos_natively"
       }
     };
   }
@@ -260,6 +295,41 @@ export function describePublishSettingsForAccount(accountOrDescriptor) {
     };
   }
 
+  if (target.provider === "snapchat" && target.accountType === "snapchat_public_profile") {
+    return {
+      supported: true,
+      target,
+      fields: [
+        {
+          id: "snapchatPublishMode",
+          type: "enum",
+          required: false,
+          default: "spotlight",
+          options: SNAPCHAT_MODES,
+          description: "Choose whether SocialClaw should publish this Snapchat step as a Spotlight, a Public Story, or a Saved Story."
+        },
+        {
+          id: "locale",
+          type: "string",
+          required: false,
+          default: "en_US",
+          description: "Optional Snapchat locale for Spotlight publishing."
+        },
+        {
+          id: "skipSaveToProfile",
+          type: "boolean",
+          required: false,
+          default: false,
+          description: "Skip saving the Spotlight to the Snapchat public profile feed. This applies to Spotlight mode only."
+        }
+      ],
+      discovery: {
+        publishShape: "single_video_post",
+        mediaDelivery: "socialclaw_fetches_encrypts_and_uploads_video_to_snapchat"
+      }
+    };
+  }
+
   if (target.provider === "tiktok" && target.accountType === "tiktok_user") {
     return {
       supported: true,
@@ -284,7 +354,7 @@ export function describePublishSettingsForAccount(accountOrDescriptor) {
           type: "boolean",
           required: false,
           default: false,
-          description: "Allow comments on the published TikTok video."
+          description: "Allow comments on the published TikTok post."
         },
         {
           id: "stitchEnabled",
@@ -313,11 +383,26 @@ export function describePublishSettingsForAccount(accountOrDescriptor) {
           required: false,
           default: false,
           description: "Declare that this TikTok post contains branded content for another brand."
+        },
+        {
+          id: "autoAddMusic",
+          type: "boolean",
+          required: false,
+          default: false,
+          description: "For TikTok photo posts, let TikTok automatically add recommended music."
+        },
+        {
+          id: "photoCoverIndex",
+          type: "number",
+          required: false,
+          default: 0,
+          min: 0,
+          description: "For TikTok photo posts, choose the zero-based image index to use as the cover."
         }
       ],
       discovery: {
-        publishShape: "video_only",
-        mediaDelivery: "tiktok_pulls_public_video_url"
+        publishShape: "single_video_or_photo_gallery",
+        mediaDelivery: "tiktok_pulls_public_media_url"
       }
     };
   }
@@ -616,16 +701,16 @@ export function validatePublishSettingsForTarget({ provider, account, settings, 
   if (target.provider === "x" && target.accountType === "x_user") {
     assertNoUnknownSettings(normalizedSettings, ["replyControl"], "x_settings_unsupported");
 
-    if (!normalizedSettings.replyControl) {
+    if (!normalizedSettings.replyControl || normalizedSettings.replyControl === X_REPLY_LEGACY_DEFAULT) {
       return {};
     }
 
-    if (!X_REPLY_OPTIONS.includes(normalizedSettings.replyControl)) {
+    if (!X_REPLY_RESTRICTIVE_OPTIONS.includes(normalizedSettings.replyControl)) {
       throw new AppError(`Invalid X replyControl: ${normalizedSettings.replyControl}`, {
         statusCode: 422,
         code: "x_reply_control_invalid",
         details: {
-          supportedValues: X_REPLY_OPTIONS
+          supportedValues: X_REPLY_RESTRICTIVE_OPTIONS
         }
       });
     }
@@ -636,8 +721,17 @@ export function validatePublishSettingsForTarget({ provider, account, settings, 
   }
 
   if (target.provider === "meta" && target.accountType === "facebook_page") {
-    assertNoUnknownSettings(normalizedSettings, ["pagePostMode"], "facebook_page_settings_unsupported");
+    assertNoUnknownSettings(
+      normalizedSettings,
+      ["pagePostMode", "facebookVideoUploadMode"],
+      "facebook_page_settings_unsupported"
+    );
     const pagePostMode = String(normalizedSettings.pagePostMode || "auto");
+    const facebookVideoUploadMode = normalizedSettings.facebookVideoUploadMode === undefined ||
+      normalizedSettings.facebookVideoUploadMode === null ||
+      normalizedSettings.facebookVideoUploadMode === ""
+      ? null
+      : String(normalizedSettings.facebookVideoUploadMode);
 
     if (!FACEBOOK_PAGE_MODES.includes(pagePostMode)) {
       throw new AppError(`Invalid Facebook pagePostMode: ${pagePostMode}`, {
@@ -645,6 +739,16 @@ export function validatePublishSettingsForTarget({ provider, account, settings, 
         code: "facebook_page_mode_invalid",
         details: {
           supportedValues: FACEBOOK_PAGE_MODES
+        }
+      });
+    }
+
+    if (facebookVideoUploadMode && !FACEBOOK_VIDEO_UPLOAD_MODES.includes(facebookVideoUploadMode)) {
+      throw new AppError(`Invalid Facebook facebookVideoUploadMode: ${facebookVideoUploadMode}`, {
+        statusCode: 422,
+        code: "facebook_video_upload_mode_invalid",
+        details: {
+          supportedValues: FACEBOOK_VIDEO_UPLOAD_MODES
         }
       });
     }
@@ -671,13 +775,23 @@ export function validatePublishSettingsForTarget({ provider, account, settings, 
     }
 
     return {
-      pagePostMode
+      pagePostMode,
+      ...(facebookVideoUploadMode ? { facebookVideoUploadMode } : {})
     };
   }
 
   if (target.provider === "facebook" && target.accountType === "facebook_page") {
-    assertNoUnknownSettings(normalizedSettings, ["pagePostMode"], "facebook_page_settings_unsupported");
+    assertNoUnknownSettings(
+      normalizedSettings,
+      ["pagePostMode", "facebookVideoUploadMode"],
+      "facebook_page_settings_unsupported"
+    );
     const pagePostMode = String(normalizedSettings.pagePostMode || "auto");
+    const facebookVideoUploadMode = normalizedSettings.facebookVideoUploadMode === undefined ||
+      normalizedSettings.facebookVideoUploadMode === null ||
+      normalizedSettings.facebookVideoUploadMode === ""
+      ? null
+      : String(normalizedSettings.facebookVideoUploadMode);
 
     if (!FACEBOOK_PAGE_MODES.includes(pagePostMode)) {
       throw new AppError(`Invalid Facebook pagePostMode: ${pagePostMode}`, {
@@ -685,6 +799,16 @@ export function validatePublishSettingsForTarget({ provider, account, settings, 
         code: "facebook_page_mode_invalid",
         details: {
           supportedValues: FACEBOOK_PAGE_MODES
+        }
+      });
+    }
+
+    if (facebookVideoUploadMode && !FACEBOOK_VIDEO_UPLOAD_MODES.includes(facebookVideoUploadMode)) {
+      throw new AppError(`Invalid Facebook facebookVideoUploadMode: ${facebookVideoUploadMode}`, {
+        statusCode: 422,
+        code: "facebook_video_upload_mode_invalid",
+        details: {
+          supportedValues: FACEBOOK_VIDEO_UPLOAD_MODES
         }
       });
     }
@@ -711,7 +835,8 @@ export function validatePublishSettingsForTarget({ provider, account, settings, 
     }
 
     return {
-      pagePostMode
+      pagePostMode,
+      ...(facebookVideoUploadMode ? { facebookVideoUploadMode } : {})
     };
   }
 
@@ -791,6 +916,49 @@ export function validatePublishSettingsForTarget({ provider, account, settings, 
     };
   }
 
+  if (target.provider === "snapchat" && target.accountType === "snapchat_public_profile") {
+    assertNoUnknownSettings(
+      normalizedSettings,
+      ["snapchatPublishMode", "locale", "skipSaveToProfile"],
+      "snapchat_settings_unsupported"
+    );
+
+    const snapchatPublishMode = String(normalizedSettings.snapchatPublishMode || "spotlight").trim().toLowerCase();
+    if (!SNAPCHAT_MODES.includes(snapchatPublishMode)) {
+      throw new AppError(`Invalid Snapchat snapchatPublishMode: ${snapchatPublishMode}`, {
+        statusCode: 422,
+        code: "snapchat_publish_mode_invalid",
+        details: {
+          supportedValues: SNAPCHAT_MODES
+        }
+      });
+    }
+
+    if (!mediaLink) {
+      throw new AppError("Snapchat publishing requires a media link", {
+        statusCode: 422,
+        code: "snapchat_media_required"
+      });
+    }
+
+    if (!isMp4Media(mediaLink)) {
+      throw new AppError("Snapchat publishing currently requires a .mp4 video media link", {
+        statusCode: 422,
+        code: "snapchat_video_required"
+      });
+    }
+
+    return snapchatPublishMode === "spotlight"
+      ? {
+          snapchatPublishMode,
+          locale: String(normalizedSettings.locale || "en_US").trim() || "en_US",
+          skipSaveToProfile: Boolean(normalizedSettings.skipSaveToProfile)
+        }
+      : {
+          snapchatPublishMode
+        };
+  }
+
   if (target.provider === "tiktok" && target.accountType === "tiktok_user") {
     assertNoUnknownSettings(
       normalizedSettings,
@@ -801,7 +969,9 @@ export function validatePublishSettingsForTarget({ provider, account, settings, 
         "stitchEnabled",
         "commercialContentToggle",
         "brandOrganicToggle",
-        "brandContentToggle"
+        "brandContentToggle",
+        "autoAddMusic",
+        "photoCoverIndex"
       ],
       "tiktok_settings_unsupported"
     );
@@ -831,10 +1001,23 @@ export function validatePublishSettingsForTarget({ provider, account, settings, 
       normalizedSettings.stitchEnabled === undefined ? false : Boolean(normalizedSettings.stitchEnabled);
     const brandOrganicToggle = Boolean(normalizedSettings.brandOrganicToggle);
     const brandContentToggle = Boolean(normalizedSettings.brandContentToggle);
+    const autoAddMusic =
+      normalizedSettings.autoAddMusic === undefined ? false : Boolean(normalizedSettings.autoAddMusic);
+    const photoCoverIndex =
+      normalizedSettings.photoCoverIndex === undefined || normalizedSettings.photoCoverIndex === null || normalizedSettings.photoCoverIndex === ""
+        ? 0
+        : Number(normalizedSettings.photoCoverIndex);
     const commercialContentToggle =
       normalizedSettings.commercialContentToggle === undefined
         ? brandOrganicToggle || brandContentToggle
         : Boolean(normalizedSettings.commercialContentToggle);
+
+    if (!Number.isInteger(photoCoverIndex) || photoCoverIndex < 0) {
+      throw new AppError("TikTok photoCoverIndex must be a non-negative integer", {
+        statusCode: 422,
+        code: "tiktok_photo_cover_index_invalid"
+      });
+    }
 
     if (commercialContentToggle && !brandOrganicToggle && !brandContentToggle) {
       throw new AppError("Select at least one TikTok commercial content disclosure option", {
@@ -857,7 +1040,9 @@ export function validatePublishSettingsForTarget({ provider, account, settings, 
       stitchEnabled,
       commercialContentToggle,
       brandOrganicToggle,
-      brandContentToggle
+      brandContentToggle,
+      autoAddMusic,
+      photoCoverIndex
     };
   }
 

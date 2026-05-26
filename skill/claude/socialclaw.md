@@ -295,11 +295,11 @@ curl -sS \
 
 ## Provider notes
 
-**Facebook** — Facebook Pages only (`facebook`). Personal profiles are not publish targets.
+**Facebook** — Facebook Pages only (`facebook`). Personal profiles are not publish targets. Page videos require `publish_video` on the connected app and Page token.
 
 **Instagram Business** (`instagram_business`) — professional/business accounts linked to a Facebook Page only. Requires media.
 
-**Instagram standalone** (`instagram`) — standalone professional accounts through Instagram Login. Separate from `instagram_business`. Requires media.
+**Instagram standalone** (`instagram`) — standalone professional accounts through Instagram Login. Separate from `instagram_business`. Meta may return creator accounts as `MEDIA_CREATOR`; that is professional. Requires media.
 
 **X** — text posts, up to four images or one video, reply steps in campaign flows.
 
@@ -309,7 +309,7 @@ curl -sS \
 
 **Pinterest** (`pinterest`) — board-centric. Standard pins, video pins, multi-image pins. Use discovery actions to inspect boards, sections, and catalogs. Product, collection, and idea surfaces are capability-gated or beta.
 
-**TikTok** (`tiktok`) — video only. Requires a public or SocialClaw-hosted video URL.
+**TikTok** (`tiktok`) — one video or one photo gallery per post. Photo galleries support up to 35 images, `autoAddMusic`, and `photoCoverIndex`; selecting a specific TikTok song or sound is not exposed by TikTok's API.
 
 **Telegram** (`telegram`) — bot-based posting. Connected manually with a bot token and `chat_id` or `@channelusername`, not via OAuth. One optional image or video per post.
 

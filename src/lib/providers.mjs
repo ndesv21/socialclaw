@@ -8,6 +8,7 @@ const SUPPORTED_PROVIDERS = [
   "facebook",
   "instagram_business",
   "instagram",
+  "snapchat",
   "tiktok",
   "linkedin",
   "linkedin_page",
@@ -31,6 +32,8 @@ const PROVIDER_ALIASES = {
   "instagram-linked": "instagram_business",
   instagram: "instagram",
   ig: "instagram",
+  snapchat: "snapchat",
+  snap: "snapchat",
   tiktok: "tiktok",
   linkedin: "linkedin",
   li: "linkedin",
@@ -63,7 +66,7 @@ const MIME_BY_EXT = {
   ".webm": "video/webm",
   ".m4v": "video/x-m4v"
 };
-const X_UPLOAD_CHUNK_BYTES = 4 * 1024 * 1024;
+const X_UPLOAD_CHUNK_BYTES = 2 * 1024 * 1024;
 const X_MEDIA_POLL_LIMIT = 15;
 const LINKEDIN_IMAGE_LIMIT = 20;
 const MB = 1024 * 1024;
@@ -72,9 +75,30 @@ const LINKEDIN_MAX_VIDEO_BYTES = 5 * GB;
 const LINKEDIN_POST_RETRY_DELAYS_MS = [1500, 3000, 5000];
 const LINKEDIN_VIDEO_POLL_LIMIT = 30;
 const LINKEDIN_VIDEO_POLL_DELAY_MS = 2000;
+const INSTAGRAM_CAROUSEL_IMAGE_LIMIT = 10;
+const INSTAGRAM_VIDEO_CONTAINER_POLL_LIMIT = 20;
+const INSTAGRAM_VIDEO_CONTAINER_POLL_DELAY_MS = 3000;
+const INSTAGRAM_CONTAINER_READY_STATUSES = new Set(["FINISHED"]);
+const INSTAGRAM_CONTAINER_FAILED_STATUSES = new Set(["ERROR", "EXPIRED"]);
+const FACEBOOK_PAGE_IMAGE_LIMIT = 10;
+const FACEBOOK_VIDEO_UPLOAD_FALLBACK_CHUNK_BYTES = 4 * MB;
+const FACEBOOK_VIDEO_MEDIA_FETCH_TIMEOUT_MS = 180_000;
+const FACEBOOK_VIDEO_UPLOAD_START_TIMEOUT_MS = 30_000;
+const FACEBOOK_VIDEO_UPLOAD_TRANSFER_TIMEOUT_MS = 90_000;
+const FACEBOOK_VIDEO_UPLOAD_FINISH_TIMEOUT_MS = 60_000;
 const X_MAX_IMAGE_BYTES = 5 * MB;
 const X_MAX_VIDEO_BYTES = 512 * MB;
+const SNAPCHAT_MAX_VIDEO_BYTES = 1 * GB;
+const SNAPCHAT_MIN_VIDEO_DURATION_SEC = 5;
+const SNAPCHAT_MAX_VIDEO_DURATION_SEC = 300;
+const SNAPCHAT_MIN_VIDEO_WIDTH = 540;
+const SNAPCHAT_MIN_VIDEO_HEIGHT = 960;
+const SNAPCHAT_STORY_RESOLVE_POLLS = 4;
+const SNAPCHAT_STORY_RESOLVE_DELAY_MS = 1200;
 const TIKTOK_MAX_VIDEO_BYTES = 4 * GB;
+const TIKTOK_MAX_PHOTO_COUNT = 35;
+const TIKTOK_PHOTO_TITLE_MAX = 90;
+const TIKTOK_PHOTO_DESCRIPTION_MAX = 4000;
 const YOUTUBE_MAX_VIDEO_BYTES = 256 * GB;
 
 export function canonicalProvider(value) {
@@ -99,6 +123,9 @@ export function providerFromAccount(account) {
   if (handle.startsWith("pinterest:board:") || handle.startsWith("pinterest:user:")) {
     return "pinterest";
   }
+  if (handle.startsWith("snapchat:@") || handle.startsWith("snapchat:profile:")) {
+    return "snapchat";
+  }
   const prefix = handle.split(":", 1)[0];
   return canonicalProvider(prefix);
 }
@@ -121,10 +148,35 @@ function isImageMedia(mediaLink) {
   return ext ? IMAGE_EXT.has(ext) : false;
 }
 
+function isGeneratedCampaignStepName(post) {
+  const name = String(post?.name || "").trim();
+  const campaignName = String(post?.campaignName || "").trim();
+  const sequencePosition = Number.isInteger(post?.sequencePosition)
+    ? post.sequencePosition
+    : Number.isInteger(post?.stepIndex)
+      ? post.stepIndex + 1
+      : null;
+
+  return Boolean(
+    name &&
+    campaignName &&
+    sequencePosition &&
+    name === `${campaignName} Step ${sequencePosition}`
+  );
+}
+
 function composePostText(post, { maxLength = null } = {}) {
-  const chunks = [post.name, post.description].filter(Boolean).map((item) => String(item).trim());
+  const title = isGeneratedCampaignStepName(post) ? "" : post.name;
+  const chunks = [title, post.description].filter(Boolean).map((item) => String(item).trim());
   const text = chunks.join("\n\n");
   return maxLength ? text.slice(0, maxLength) : text;
+}
+
+function composeTikTokPhotoText(post) {
+  return {
+    title: String(post.name || "").trim().slice(0, TIKTOK_PHOTO_TITLE_MAX),
+    description: String(post.description || "").trim().slice(0, TIKTOK_PHOTO_DESCRIPTION_MAX)
+  };
 }
 
 function maybeAltText(value) {
@@ -189,6 +241,21 @@ function buildProviderUrl(provider, account, providerPostId) {
     return `https://www.youtube.com/watch?v=${providerPostId}`;
   }
 
+  if (provider === "tiktok") {
+    const username = String(account?.handle || "")
+      .trim()
+      .replace(/^tiktok:/, "")
+      .replace(/^@+/, "");
+    if (username) {
+      return `https://www.tiktok.com/@${username}/video/${providerPostId}`;
+    }
+    return null;
+  }
+
+  if (provider === "snapchat") {
+    return null;
+  }
+
   if (provider === "reddit") {
     return `https://www.reddit.com/by_id/${providerPostId}`;
   }
@@ -211,6 +278,20 @@ function buildProviderUrl(provider, account, providerPostId) {
   }
 
   return null;
+}
+
+function buildDiscordWebhookMessageUrl(account, accessToken, config, providerPostId) {
+  const webhookId = String(account?.meta?.webhookId || account?.externalId || "").trim();
+  const webhookToken = String(accessToken || "").trim();
+  const messageId = String(providerPostId || "").trim();
+  if (!webhookId || !webhookToken || !messageId) {
+    throw new AppError("Discord delete requires webhook credentials and a provider post id", {
+      statusCode: 422,
+      code: "discord_delete_missing_fields"
+    });
+  }
+  const baseUrl = String(config.discord.apiBaseUrl || "https://discord.com/api/v10").replace(/\/$/, "");
+  return `${baseUrl}/webhooks/${encodeURIComponent(webhookId)}/${encodeURIComponent(webhookToken)}/messages/${encodeURIComponent(messageId)}`;
 }
 
 function primaryMediaUrl(post) {
@@ -247,7 +328,10 @@ function mediaAssetsForPost(post) {
             originalFilename: asset.originalFilename ? String(asset.originalFilename).trim() : null,
             mime: asset.mime ? sanitizeContentType(asset.mime) : inferMimeFromUrl(asset.url),
             kind: asset.kind ? String(asset.kind).trim().toLowerCase() : null,
-            size: Number.isFinite(Number(asset.size)) ? Number(asset.size) : null
+            size: Number.isFinite(Number(asset.size)) ? Number(asset.size) : null,
+            duration: Number.isFinite(Number(asset.duration)) ? Number(asset.duration) : null,
+            width: Number.isFinite(Number(asset.width)) ? Number(asset.width) : null,
+            height: Number.isFinite(Number(asset.height)) ? Number(asset.height) : null
           };
         })
         .filter((asset) => asset && asset.url)
@@ -267,7 +351,10 @@ function mediaAssetsForPost(post) {
           originalFilename: null,
           mime: inferMimeFromUrl(post.mediaLink),
           kind: null,
-          size: Number.isFinite(Number(post.size)) ? Number(post.size) : null
+          size: Number.isFinite(Number(post.size)) ? Number(post.size) : null,
+          duration: Number.isFinite(Number(post.duration)) ? Number(post.duration) : null,
+          width: Number.isFinite(Number(post.width)) ? Number(post.width) : null,
+          height: Number.isFinite(Number(post.height)) ? Number(post.height) : null
         }
       ]
     : [];
@@ -295,6 +382,77 @@ function kindFromAsset(asset) {
   return "other";
 }
 
+function normalizeTikTokPhotoCoverIndex(settings = {}, photoCount = 0) {
+  const raw = settings.photoCoverIndex;
+  const value = raw === undefined || raw === null || raw === "" ? 0 : Number(raw);
+  if (!Number.isInteger(value) || value < 0 || value >= photoCount) {
+    throw new AppError("TikTok photoCoverIndex must point to one of the selected photos", {
+      code: "tiktok_photo_cover_index_invalid",
+      statusCode: 422,
+      details: {
+        photoCount
+      }
+    });
+  }
+  return value;
+}
+
+function tikTokMediaShapeForPost(post) {
+  const assets = mediaAssetsForPost(post);
+  const kinds = assets.map((asset) => kindFromAsset(asset));
+  const imageCount = kinds.filter((kind) => kind === "image").length;
+  const videoCount = kinds.filter((kind) => kind === "video").length;
+  const otherCount = kinds.filter((kind) => kind === "other").length;
+
+  if (assets.length === 0) {
+    return {
+      kind: "missing",
+      assets,
+      imageCount,
+      videoCount,
+      otherCount
+    };
+  }
+
+  if (otherCount > 0) {
+    return {
+      kind: "unsupported",
+      assets,
+      imageCount,
+      videoCount,
+      otherCount
+    };
+  }
+
+  if (videoCount === 1 && assets.length === 1) {
+    return {
+      kind: "video",
+      assets,
+      imageCount,
+      videoCount,
+      otherCount
+    };
+  }
+
+  if (imageCount === assets.length) {
+    return {
+      kind: "photo",
+      assets,
+      imageCount,
+      videoCount,
+      otherCount
+    };
+  }
+
+  return {
+    kind: "mixed",
+    assets,
+    imageCount,
+    videoCount,
+    otherCount
+  };
+}
+
 function enforceKnownAssetSize(asset, maxBytes, { code, message }) {
   const size = Number(asset?.size);
   if (!Number.isFinite(size) || size <= 0) {
@@ -313,6 +471,89 @@ function enforceKnownAssetSize(asset, maxBytes, { code, message }) {
       url: asset?.url || null
     }
   });
+}
+
+function snapchatModeFromPost(post) {
+  const mode = String(post?.settings?.snapchatPublishMode || "spotlight").trim().toLowerCase();
+  if (["spotlight", "story", "saved_story"].includes(mode)) {
+    return mode;
+  }
+  return "spotlight";
+}
+
+function snapchatModeLabel(mode) {
+  if (mode === "story") {
+    return "Story";
+  }
+  if (mode === "saved_story") {
+    return "Saved Story";
+  }
+  return "Spotlight";
+}
+
+function assetCreatedAtMs(asset) {
+  const value = new Date(asset?.created_at || asset?.createdAt || 0).getTime();
+  return Number.isFinite(value) ? value : 0;
+}
+
+function normalizeSnapchatAssetId(asset, fallback = null) {
+  return String(
+    asset?.id ||
+    asset?.story_id ||
+    asset?.saved_story_id ||
+    asset?.spotlight_id ||
+    fallback ||
+    ""
+  ).trim() || null;
+}
+
+function findSnapchatAssetById(items, assetId) {
+  const normalizedId = String(assetId || "").trim();
+  if (!normalizedId) {
+    return null;
+  }
+  return (Array.isArray(items) ? items : []).find((item) => normalizeSnapchatAssetId(item) === normalizedId) || null;
+}
+
+function validateSnapchatVideoMetadata(asset, mode) {
+  const label = `Snapchat ${snapchatModeLabel(mode)}`;
+  const duration = Number(asset?.duration || 0);
+  if (Number.isFinite(duration) && duration > 0) {
+    if (duration < SNAPCHAT_MIN_VIDEO_DURATION_SEC || duration > SNAPCHAT_MAX_VIDEO_DURATION_SEC) {
+      throw new AppError(
+        `${label} videos must be between ${SNAPCHAT_MIN_VIDEO_DURATION_SEC} and ${SNAPCHAT_MAX_VIDEO_DURATION_SEC} seconds`,
+        {
+          statusCode: 422,
+          code: "snapchat_video_duration_invalid",
+          details: {
+            duration,
+            minSeconds: SNAPCHAT_MIN_VIDEO_DURATION_SEC,
+            maxSeconds: SNAPCHAT_MAX_VIDEO_DURATION_SEC
+          }
+        }
+      );
+    }
+  }
+
+  const width = Number(asset?.width || 0);
+  const height = Number(asset?.height || 0);
+  if (Number.isFinite(width) && width > 0 && Number.isFinite(height) && height > 0) {
+    if (width < SNAPCHAT_MIN_VIDEO_WIDTH || height < SNAPCHAT_MIN_VIDEO_HEIGHT) {
+      throw new AppError(
+        `${label} videos must be at least ${SNAPCHAT_MIN_VIDEO_WIDTH}x${SNAPCHAT_MIN_VIDEO_HEIGHT}`,
+        {
+          statusCode: 422,
+          code: "snapchat_video_resolution_invalid",
+          details: {
+            width,
+            height,
+            minWidth: SNAPCHAT_MIN_VIDEO_WIDTH,
+            minHeight: SNAPCHAT_MIN_VIDEO_HEIGHT
+          }
+        }
+      );
+    }
+  }
 }
 
 function sanitizeContentType(value) {
@@ -405,10 +646,22 @@ export function validateProviderPayload(normalizedPost) {
 
   if (provider === "meta") {
     if (assetCount > 1) {
-      throw new AppError("Meta currently supports one media asset per post", {
-        code: "provider_multi_asset_unsupported",
-        statusCode: 422
-      });
+      if (accountLower.startsWith("meta:instagram:")) {
+        assertInstagramCarouselAssets(mediaAssets);
+      } else {
+        if (assetCount > FACEBOOK_PAGE_IMAGE_LIMIT) {
+          throw new AppError(`Facebook Pages support up to ${FACEBOOK_PAGE_IMAGE_LIMIT} image assets per post`, {
+            code: "facebook_media_limit_exceeded",
+            statusCode: 422
+          });
+        }
+        if (videoCount > 0 || mediaKinds.some((kind) => kind !== "image")) {
+          throw new AppError("Facebook Pages support one video asset or up to ten image assets per post", {
+            code: "facebook_multi_media_unsupported",
+            statusCode: 422
+          });
+        }
+      }
     }
 
     if (interactionType !== "post") {
@@ -435,10 +688,18 @@ export function validateProviderPayload(normalizedPost) {
 
   if (provider === "facebook") {
     if (assetCount > 1) {
-      throw new AppError("Facebook currently supports one media asset per post", {
-        code: "provider_multi_asset_unsupported",
-        statusCode: 422
-      });
+      if (assetCount > FACEBOOK_PAGE_IMAGE_LIMIT) {
+        throw new AppError(`Facebook Pages support up to ${FACEBOOK_PAGE_IMAGE_LIMIT} image assets per post`, {
+          code: "facebook_media_limit_exceeded",
+          statusCode: 422
+        });
+      }
+      if (videoCount > 0 || mediaKinds.some((kind) => kind !== "image")) {
+        throw new AppError("Facebook Pages support one video asset or up to ten image assets per post", {
+          code: "facebook_multi_media_unsupported",
+          statusCode: 422
+        });
+      }
     }
 
     if (interactionType !== "post") {
@@ -458,10 +719,7 @@ export function validateProviderPayload(normalizedPost) {
 
   if (provider === "instagram_business" || provider === "instagram") {
     if (assetCount > 1) {
-      throw new AppError("Instagram currently supports one media asset per post", {
-        code: "provider_multi_asset_unsupported",
-        statusCode: 422
-      });
+      assertInstagramCarouselAssets(mediaAssets);
     }
 
     if (interactionType !== "post") {
@@ -487,13 +745,6 @@ export function validateProviderPayload(normalizedPost) {
   }
 
   if (provider === "tiktok") {
-    if (assetCount > 1) {
-      throw new AppError("TikTok currently supports one media asset per post", {
-        code: "provider_multi_asset_unsupported",
-        statusCode: 422
-      });
-    }
-
     if (interactionType !== "post") {
       throw new AppError("TikTok publish interactions currently support only post steps", {
         code: "tiktok_interaction_unsupported",
@@ -501,26 +752,101 @@ export function validateProviderPayload(normalizedPost) {
       });
     }
 
-    if (!mediaLink) {
-      throw new AppError("TikTok posts require a video media link", {
+    const tiktokMedia = tikTokMediaShapeForPost(normalizedPost);
+
+    if (tiktokMedia.kind === "missing") {
+      throw new AppError("TikTok posts require one video or one to 35 image assets", {
         code: "tiktok_media_required",
         statusCode: 422
       });
     }
 
-    if (!ext || !VIDEO_EXT.has(ext)) {
-      throw new AppError("TikTok media must be video (.mp4/.mov/.webm/.m4v)", {
-        code: "tiktok_video_required",
+    if (tiktokMedia.kind === "unsupported") {
+      throw new AppError("TikTok media must be image (.jpg/.jpeg/.png/.webp) or video (.mp4/.mov/.webm/.m4v)", {
+        code: "tiktok_media_unsupported",
         statusCode: 422
       });
     }
 
+    if (tiktokMedia.kind === "mixed") {
+      throw new AppError("TikTok supports either one video or one photo gallery per post, not mixed media", {
+        code: "tiktok_mixed_media_unsupported",
+        statusCode: 422
+      });
+    }
+
+    if (tiktokMedia.kind === "photo") {
+      if (assetCount > TIKTOK_MAX_PHOTO_COUNT) {
+        throw new AppError(`TikTok photo posts support up to ${TIKTOK_MAX_PHOTO_COUNT} images`, {
+          code: "tiktok_photo_limit_exceeded",
+          statusCode: 422
+        });
+      }
+      normalizeTikTokPhotoCoverIndex(normalizedPost.settings || {}, assetCount);
+    }
+
+    if (tiktokMedia.kind === "video") {
+      for (const asset of mediaAssets) {
+        if (kindFromAsset(asset) === "video") {
+          enforceKnownAssetSize(asset, TIKTOK_MAX_VIDEO_BYTES, {
+            code: "tiktok_video_too_large",
+            message: "TikTok video assets must be 4 GB or smaller"
+          });
+        }
+      }
+    }
+  }
+
+  if (provider === "snapchat") {
+    const snapchatMode = snapchatModeFromPost(normalizedPost);
+    const label = `Snapchat ${snapchatModeLabel(snapchatMode)}`;
+    if (interactionType !== "post") {
+      throw new AppError(`${label} publish interactions currently support only post steps`, {
+        code: "snapchat_interaction_unsupported",
+        statusCode: 422
+      });
+    }
+
+    if (assetCount !== 1 || !mediaLink) {
+      throw new AppError(`${label} publishing requires exactly one video media asset`, {
+        code: "snapchat_media_required",
+        statusCode: 422
+      });
+    }
+
+    if (ext !== ".mp4" || videoCount !== 1 || mediaKinds.includes("image") || mediaKinds.includes("other")) {
+      throw new AppError(`${label} currently supports exactly one .mp4 video asset`, {
+        code: "snapchat_video_required",
+        statusCode: 422
+      });
+    }
+
+    if (snapchatMode === "saved_story") {
+      const title = String(normalizedPost.name || "").trim();
+      if (!title) {
+        throw new AppError("Snapchat Saved Story publishing requires a title", {
+          code: "snapchat_saved_story_title_required",
+          statusCode: 422
+        });
+      }
+      if (title.length > 45) {
+        throw new AppError("Snapchat Saved Story titles must be 45 characters or shorter", {
+          code: "snapchat_saved_story_title_too_long",
+          statusCode: 422,
+          details: {
+            maxLength: 45
+          }
+        });
+      }
+    }
+
     for (const asset of mediaAssets) {
       if (kindFromAsset(asset) === "video") {
-        enforceKnownAssetSize(asset, TIKTOK_MAX_VIDEO_BYTES, {
-          code: "tiktok_video_too_large",
-          message: "TikTok video assets must be 4 GB or smaller"
+        enforceKnownAssetSize(asset, SNAPCHAT_MAX_VIDEO_BYTES, {
+          code: "snapchat_video_too_large",
+          message: `${label} videos must be 1 GB or smaller`
         });
+        validateSnapchatVideoMetadata(asset, snapchatMode);
       }
     }
   }

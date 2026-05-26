@@ -200,6 +200,9 @@ function normalizeAssets(post) {
       mime: item.mime ? String(item.mime).trim() : null,
       kind: item.kind ? String(item.kind).trim().toLowerCase() : null,
       size: Number.isFinite(Number(item.size)) ? Number(item.size) : null,
+      duration: Number.isFinite(Number(item.duration)) ? Number(item.duration) : null,
+      width: Number.isFinite(Number(item.width)) ? Number(item.width) : null,
+      height: Number.isFinite(Number(item.height)) ? Number(item.height) : null,
       altText: item.altText ? String(item.altText).trim() : null
     };
   });
