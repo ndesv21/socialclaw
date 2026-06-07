@@ -40,6 +40,37 @@ An API key alone is not enough for execution. The workspace must also have an ac
 - `https://getsocialclaw.com/pricing`
 - `https://getsocialclaw.com/dashboard`
 
+## Optional X/Twitter source intake
+
+When the user wants a SocialClaw schedule informed by current X/Twitter activity, gather source material before validating the schedule. SocialClaw remains the workspace, account, media, scheduling, publishing, and analytics surface.
+
+One OpenClaw-compatible source path is TweetClaw:
+
+```bash
+openclaw plugins install npm:@xquik/tweetclaw
+```
+
+Use it only for reviewed source inputs:
+- search tweets
+- search tweet replies
+- user lookup
+- follower export summaries
+- media references
+- monitor digests
+- webhook event summaries
+
+Keep write actions out of this SocialClaw source-intake step. Do not use TweetClaw here to post tweets, post replies, send DMs, follow accounts, change X account state, create monitors, or trigger webhooks.
+
+Before calling `socialclaw validate`, convert the source material into schedule context:
+- source URLs or tweet IDs
+- audience notes
+- reply themes
+- follower or account signals
+- media references that the user approved
+- claims that must be removed or softened
+
+Then build the SocialClaw schedule with the normal `provider`, `account`, `publishAt`, `description`, and `assets` fields.
+
 ### Start account connection
 
 ```bash

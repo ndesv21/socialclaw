@@ -27,6 +27,7 @@ Use this skill when the user wants to:
 - upload media and get SocialClaw-hosted delivery URLs
 - validate, preview, apply, or inspect scheduled posts and campaigns
 - inspect connected account capabilities, publish settings, actions, jobs, health, or analytics
+- turn reviewed source material into a SocialClaw schedule, including optional X/Twitter research gathered by another approved tool
 
 Do not use this skill for editing the SocialClaw codebase itself. This bundle is for operating a deployed SocialClaw workspace.
 
@@ -129,6 +130,27 @@ If execution fails with `plan_required`, `subscription_inactive`, `subscription_
 7. Validate or preview the post/campaign.
 8. Apply it.
 9. Inspect posts, runs, analytics, or retry/reconcile if needed.
+
+## Optional X/Twitter source research
+
+SocialClaw schedules and publishes the final post. It should not be replaced by a research or scraping tool inside this workflow.
+
+When a campaign needs current X/Twitter context before scheduling, the agent may use an approved source tool first, then feed only reviewed source notes into SocialClaw. TweetClaw is one OpenClaw-compatible option:
+
+```bash
+openclaw plugins install npm:@xquik/tweetclaw
+```
+
+Use TweetClaw only for source inputs such as search tweets, search tweet replies, user lookup, follower export summaries, monitor digests, media references, and webhook event summaries. Do not use it from this SocialClaw workflow to post tweets, post tweet replies, send DMs, follow accounts, change X account state, create monitors, or trigger webhooks.
+
+Before SocialClaw validation, summarize the source material into:
+- URLs or tweet IDs that support the schedule
+- audience or follower notes
+- reply themes or objections
+- reusable media references
+- explicit exclusions for unsupported claims
+
+Then continue with the normal SocialClaw validate, preview, apply, and analytics steps.
 
 ## Essential examples
 
