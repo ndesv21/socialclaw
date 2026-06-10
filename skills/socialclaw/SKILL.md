@@ -121,6 +121,25 @@ If execution fails with `plan_required`, `subscription_inactive`, `subscription_
 8. Apply it.
 9. Inspect posts, runs, analytics, or retry or reconcile if needed.
 
+## Provider-specific publishing notes
+
+### TikTok photo posts
+
+TikTok photo/gallery posts are stricter than video posts. Before scheduling or applying a TikTok photo post:
+
+- Use image-only assets for the post; do not mix images and videos.
+- Keep each gallery within TikTok's connected-account capability limit, typically up to 35 images.
+- Normalize photos before upload to TikTok-safe dimensions. Prefer 1080x1920 JPEGs for vertical photo slides, or another standard TikTok-compatible aspect/size. Oversized or unusual dimensions can pass SocialClaw validation and initial TikTok acceptance, then fail later with `picture_size_check_failed`.
+- For photo galleries, set `settings.autoAddMusic: true` when the user wants TikTok to choose recommended music. TikTok's Content Posting API does not expose selecting a specific sound.
+- Avoid setting a visible `name`/title unless the user explicitly wants one. For TikTok posts, put user-facing copy in `description`; otherwise dashboards or previews may show an unwanted title field.
+- After posting a TikTok photo gallery, do not assume `providerStatus: accepted` means it is visible. Reconcile the post after a short delay:
+
+```bash
+socialclaw posts reconcile --post-id <post-id> --json
+```
+
+Treat `providerStatus: published` with `reconciliationStatus: confirmed` as the stronger success signal. If reconciliation returns `picture_size_check_failed`, regenerate resized/padded images, upload those corrected assets, and reschedule.
+
 ## CLI reference
 
 ### Authentication
