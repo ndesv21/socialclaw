@@ -221,7 +221,7 @@ In practice, all of these share the same model:
 
 Pinterest is exposed as the `pinterest` provider in the public CLI and skill bundle. Its main publish target is board-centric, with support for standard pins, video pins, multi-image pins, board creation and section or catalog discovery, plus pin and account analytics. Product, collection, and idea surfaces should be treated as capability-gated or beta rather than assumed for every workspace.
 
-TikTok supports one video or one photo gallery per post. Photo galleries can include up to 35 images and expose `autoAddMusic` plus `photoCoverIndex`; selecting a specific TikTok song or sound is not available through TikTok's Content Posting API.
+TikTok supports one video or one photo gallery per post. Photo galleries can include up to 35 images and expose `autoAddMusic` plus `photoCoverIndex`; selecting a specific TikTok song or sound is not available through TikTok's Content Posting API. For photo galleries, normalize images before upload, preferably to 1080x1920 JPEGs for vertical slides or another standard TikTok-compatible aspect/size. Oversized or unusual image dimensions may pass SocialClaw validation and initial TikTok acceptance, then fail later with `picture_size_check_failed`; reconcile photo posts after publish to confirm TikTok reports `PUBLISH_COMPLETE`.
 
 ## Publishing
 

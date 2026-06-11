@@ -55,6 +55,9 @@
 - `autoAddMusic` lets TikTok add recommended music automatically to photo posts; selecting a specific song or sound is not exposed by the Content Posting API.
 - `photoCoverIndex` selects the zero-based cover image for photo posts.
 - Do not mix image and video assets in one TikTok post.
+- Normalize photo-gallery images before upload. Prefer 1080x1920 JPEGs for vertical slides, or another standard TikTok-compatible aspect/size. Oversized or unusual dimensions may pass SocialClaw validation and initial TikTok acceptance, then fail during provider processing with `picture_size_check_failed`.
+- Avoid setting a visible `name`/title unless the user explicitly wants one. Put TikTok-facing copy in `description`.
+- Reconcile photo posts after a short delay. `providerStatus: accepted` only means TikTok accepted the publish request; use `socialclaw posts reconcile --post-id <post-id> --json` and treat `providerStatus: published` plus `reconciliationStatus: confirmed` as the stronger success signal.
 
 ## Telegram
 

@@ -219,17 +219,73 @@ curl -sS \
   "https://getsocialclaw.com/v1/runs/<run-id>"
 ```
 
+## Schedule field reference
+
+### Account identifier
+
+The `account` field uses the account **handle** from `socialclaw accounts list --json` (the `handle` field) or `GET /v1/accounts`.
+
+Examples:
+- `youtube:channel:UCKOFNbiM_xxx`
+- `instagram:standalone:17841471712xxx`
+- `x:@username`
+- `linkedin:member:123`
+- `pinterest:board:123`
+
+### Publish timing
+
+`publishAt` takes an ISO 8601 UTC timestamp. To post immediately, use a timestamp 1–2 minutes in the future:
+
+```bash
+date -u -v+2M '+%Y-%m-%dT%H:%M:%S.000Z'   # macOS
+date -u -d '+2 minutes' '+%Y-%m-%dT%H:%M:%S.000Z'  # Linux
+```
+
+### Provider field
+
+Always include the `provider` field alongside the account handle (e.g. `"provider": "youtube"`, `"provider": "instagram"`). This ensures correct routing.
+
 ## Minimal schedule patterns
 
-### Single post
+### Single post (post now)
 
 ```json
 {
   "posts": [
     {
-      "account": "youtube:channel:123",
-      "title": "Weekly update",
+      "account": "youtube:channel:UCKOFNbiM_xxx",
+      "provider": "youtube",
+      "name": "Weekly update",
       "description": "Short description",
+      "status": "scheduled",
+      "publishAt": "2026-03-22T14:00:00.000Z",
+      "settings": {
+        "privacyStatus": "public",
+        "notifySubscribers": true,
+        "madeForKids": false
+      },
+      "assets": [
+        {
+          "mediaLink": "https://getsocialclaw.com/media/asset-id/token/video.mp4"
+        }
+      ]
+    }
+  ]
+}
+```
+
+YouTube defaults to `privacyStatus: "private"`  -  set it to `"public"` when the user wants the video visible immediately.
+
+### Instagram Reel
+
+```json
+{
+  "posts": [
+    {
+      "account": "instagram:standalone:17841471712xxx",
+      "provider": "instagram",
+      "name": "My reel",
+      "description": "Caption with #hashtags",
       "status": "scheduled",
       "publishAt": "2026-03-22T14:00:00.000Z",
       "assets": [
@@ -241,6 +297,12 @@ curl -sS \
   ]
 }
 ```
+
+Instagram auto-detects whether to publish as a Reel or a feed post based on the media type.
+
+### Multi-platform post
+
+To post the same content to multiple accounts, add one entry per account in the `posts` array. Each can have its own description, settings, and publish time.
 
 ### Draft campaign
 
@@ -293,13 +355,3 @@ curl -sS \
 ```
 
 Use one image asset for a standard pin, one video asset for a video pin, or multiple image assets for a multi-image pin.
-
-## When to stop and tell the user something is unsupported
-
-- Facebook personal profile publishing
-- Personal Instagram accounts
-- TikTok image posts
-- Telegram OAuth browser auth
-- Pinterest product, collection, or idea publishing when the connected account does not advertise those capabilities
-- Reddit native media/gallery upload
-- YouTube community posts or Shorts-specific flows
