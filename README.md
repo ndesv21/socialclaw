@@ -144,6 +144,36 @@ socialclaw usage --json
 
 ## Agent integrations
 
+### MCP server
+
+The package ships a Model Context Protocol server. Any MCP client (Claude Code, Claude Desktop, Cursor, and others) gets 17 validation-first publishing tools over your connected workspace accounts: list accounts and capabilities, upload media, validate and preview schedules, apply with idempotency keys, publish drafts, and inspect posts, attempts, runs, analytics, usage, and health.
+
+Claude Code:
+
+```bash
+claude mcp add socialclaw \
+  --env SOCIALCLAW_API_KEY=sc_live_your_key \
+  -- npx -y socialclaw mcp
+```
+
+Claude Desktop, Cursor, and other JSON-configured clients:
+
+```json
+{
+  "mcpServers": {
+    "socialclaw": {
+      "command": "npx",
+      "args": ["-y", "socialclaw", "mcp"],
+      "env": {
+        "SOCIALCLAW_API_KEY": "sc_live_your_key"
+      }
+    }
+  }
+}
+```
+
+If you have already run `socialclaw login --api-key <key>`, the server reuses the saved credentials and the `env` block is unnecessary. See [getsocialclaw.com/mcp](https://getsocialclaw.com/mcp) for the full tool list.
+
 ### Claude Code plugin
 
 Install the packaged Claude Code plugin from inside Claude Code:

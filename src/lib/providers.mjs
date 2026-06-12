@@ -179,6 +179,27 @@ function composeTikTokPhotoText(post) {
   };
 }
 
+// TikTok photo posts only accept JPEG and WebP source images. Other formats
+// (notably PNG) are accepted at init but fail asynchronously with
+// file_format_check_failed, so the post never appears. Route non-native formats
+// through the media server's `?format=jpeg` conversion, keeping the pulled URL
+// on the verified publishing domain.
+function tikTokPhotoImageUrl(asset) {
+  const url = String(asset?.url || "").trim();
+  if (!url) {
+    return url;
+  }
+  const mime = String(asset?.mime || "").toLowerCase();
+  const isNativeFormat =
+    mime === "image/jpeg" ||
+    mime === "image/webp" ||
+    /\.(?:jpe?g|webp)(?:[?#]|$)/i.test(url);
+  if (isNativeFormat) {
+    return url;
+  }
+  return url.includes("?") ? `${url}&format=jpeg` : `${url}?format=jpeg`;
+}
+
 function maybeAltText(value) {
   const text = String(value || "").trim();
   return text ? text : undefined;

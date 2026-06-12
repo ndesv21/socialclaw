@@ -126,7 +126,8 @@ function printUsage() {
       PROVIDER_CHOICES.replaceAll("|", " | ")
     ]),
     renderHelpSection("INTEGRATIONS", [
-      `${PRIMARY_COMMAND} install --claude`
+      `${PRIMARY_COMMAND} install --claude`,
+      `${PRIMARY_COMMAND} mcp    (stdio MCP server for Claude, Cursor, and other MCP clients)`
     ])
   ];
 
@@ -827,6 +828,12 @@ async function main() {
   }
 
   try {
+    if (command === "mcp") {
+      const { runMcpServer } = await import("./mcp.mjs");
+      await runMcpServer();
+      return;
+    }
+
     if (command === "login") {
       const baseUrl = String(args["base-url"] || DEFAULT_BASE_URL);
       const apiKey = args["api-key"] ? String(args["api-key"]) : "";
