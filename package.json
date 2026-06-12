@@ -67,5 +67,6 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "mcpName": "io.github.ndesv21/socialclaw"
 }

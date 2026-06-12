@@ -1,0 +1,45 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+  "name": "io.github.ndesv21/socialclaw",
+  "description": "Social media scheduling and publishing for AI agents: validate and publish to X, LinkedIn, Instagram, Facebook Pages, TikTok, Discord, Telegram, YouTube, Reddit, WordPress, and Pinterest through one workspace.",
+  "repository": {
+    "url": "https://github.com/ndesv21/socialclaw",
+    "source": "github"
+  },
+  "version": "0.1.15",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "socialclaw",
+      "version": "0.1.15",
+      "runtimeHint": "npx",
+      "transport": { "type": "stdio" },
+      "runtimeArguments": [
+        { "type": "positional", "value": "mcp", "isRequired": true }
+      ],
+      "environmentVariables": [
+        {
+          "name": "SOCIALCLAW_API_KEY",
+          "description": "SocialClaw workspace API key from https://getsocialclaw.com/dashboard",
+          "isRequired": true,
+          "isSecret": true
+        }
+      ]
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://getsocialclaw.com/mcp",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "Bearer <SocialClaw workspace API key>",
+          "isRequired": true,
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}
