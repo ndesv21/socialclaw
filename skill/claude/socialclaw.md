@@ -314,30 +314,30 @@ curl -sS \
 
 ## Provider notes
 
-**Facebook** — Facebook Pages only (`facebook`). Personal profiles are not publish targets. Page videos require `publish_video` on the connected app and Page token.
+**Facebook**  -  Facebook Pages only (`facebook`). Personal profiles are not publish targets. Page videos require `publish_video` on the connected app and Page token.
 
-**Instagram Business** (`instagram_business`) — professional/business accounts linked to a Facebook Page only. Requires media.
+**Instagram Business** (`instagram_business`)  -  professional/business accounts linked to a Facebook Page only. Requires media.
 
-**Instagram standalone** (`instagram`) — standalone professional accounts through Instagram Login. Separate from `instagram_business`. Meta may return creator accounts as `MEDIA_CREATOR`; that is professional. Requires media.
+**Instagram standalone** (`instagram`)  -  standalone professional accounts through Instagram Login. Separate from `instagram_business`. Meta may return creator accounts as `MEDIA_CREATOR`; that is professional. Requires media.
 
-**X** — text posts, up to four images or one video, reply steps in campaign flows.
+**X**  -  text posts, up to four images or one video, reply steps in campaign flows.
 
-**LinkedIn profile** (`linkedin`) — text and native image or video. Up to twenty images or one video per post.
+**LinkedIn profile** (`linkedin`)  -  text and native image or video. Up to twenty images or one video per post.
 
-**LinkedIn page** (`linkedin_page`) — separate from member profiles. Same media limits.
+**LinkedIn page** (`linkedin_page`)  -  separate from member profiles. Same media limits.
 
-**Pinterest** (`pinterest`) — board-centric. Standard pins, video pins, multi-image pins. Use discovery actions to inspect boards, sections, and catalogs. Product, collection, and idea surfaces are capability-gated or beta.
+**Pinterest** (`pinterest`)  -  board-centric. Standard pins, video pins, multi-image pins. Use discovery actions to inspect boards, sections, and catalogs. Product, collection, and idea surfaces are capability-gated or beta.
 
-**TikTok** (`tiktok`) — one video or one photo gallery per post. Photo galleries support up to 35 images, `autoAddMusic`, and `photoCoverIndex`; selecting a specific TikTok song or sound is not exposed by TikTok's API.
+**TikTok** (`tiktok`)  -  one video or one photo gallery per post. Photo galleries support up to 35 images, `autoAddMusic`, and `photoCoverIndex`; selecting a specific TikTok song or sound is not exposed by TikTok's API.
 
-**Telegram** (`telegram`) — bot-based posting. Connected manually with a bot token and `chat_id` or `@channelusername`, not via OAuth. One optional image or video per post.
+**Telegram** (`telegram`)  -  bot-based posting. Connected manually with a bot token and `chat_id` or `@channelusername`, not via OAuth. One optional image or video per post.
 
-**Discord** (`discord`) — channel posting via webhook URL. Connected manually, not via OAuth. One optional image or video per post.
+**Discord** (`discord`)  -  channel posting via webhook URL. Connected manually, not via OAuth. One optional image or video per post.
 
-**YouTube** (`youtube`) — channel video uploads. One video per post. Community posts and Shorts-specific flows are not supported.
+**YouTube** (`youtube`)  -  channel video uploads. One video per post. Community posts and Shorts-specific flows are not supported.
 
-**Reddit** (`reddit`) — self posts and link posts. Requires a `subreddit` setting. Native media upload is not supported.
+**Reddit** (`reddit`)  -  self posts and link posts. Requires a `subreddit` setting. Native media upload is not supported.
 
-**WordPress** (`wordpress`) — WordPress.com or Jetpack-connected sites. SocialClaw uploads remote media before publishing.
+**WordPress** (`wordpress`)  -  WordPress.com or Jetpack-connected sites. SocialClaw uploads remote media before publishing.
 
-**Legacy Meta** (`meta`) — older workspaces only. Prefer explicit `facebook` and `instagram_business` for new workspaces.
+**Legacy Meta** (`meta`)  -  older workspaces only. Prefer explicit `facebook` and `instagram_business` for new workspaces.

@@ -210,6 +210,14 @@ It is designed for OpenClaw and other compatible agent runtimes that can load a 
 
 This is the bundle to publish to ClawHub for OpenClaw discovery.
 
+If a schedule needs current X/Twitter context before publishing, gather that source material before calling SocialClaw. One compatible path is to install TweetClaw in OpenClaw:
+
+```bash
+openclaw plugins install npm:@xquik/tweetclaw
+```
+
+Use TweetClaw for reviewable source inputs such as search tweets, search tweet replies, user lookup, follower export summaries, monitor digests, media references, and webhook event summaries. Keep SocialClaw as the scheduling and publishing system for the final posts, assets, accounts, timing, and analytics.
+
 ### Other agents
 
 SocialClaw is not limited to one agent framework. The repo also includes an agent manifest in [`skill/agents/openai.yaml`](./skill/agents/openai.yaml), and the CLI works well for any runtime that can execute shell commands or make HTTP requests.
