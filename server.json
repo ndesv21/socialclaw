@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
   "name": "io.github.ndesv21/socialclaw",
-  "description": "Social media scheduling and publishing for AI agents: validate and publish to X, LinkedIn, Instagram, Facebook Pages, TikTok, Discord, Telegram, YouTube, Reddit, WordPress, and Pinterest through one workspace.",
+  "description": "Connect any AI agent to 11+ social platforms: schedule, publish & track posts via hosted MCP.",
   "repository": {
     "url": "https://github.com/ndesv21/socialclaw",
     "source": "github"
