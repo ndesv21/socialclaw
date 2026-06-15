@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "socialclaw": {
+      "url": "https://getsocialclaw.com/mcp",
+      "headers": {
+        "Authorization": "Bearer ${SOCIALCLAW_API_KEY}"
+      }
+    }
+  }
+}
