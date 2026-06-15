@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/ndesv21-socialclaw-badge.png)](https://mseep.ai/app/ndesv21-socialclaw)
+
 <p align="center">
   <img src="https://raw.githubusercontent.com/ndesv21/socialclaw/main/.github/readme/logo.png" alt="SocialClaw logo" width="112">
 </p>
