@@ -23,6 +23,7 @@ const SCHEDULE_INPUT_SCHEMA = {
 const TOOLS = [
   {
     name: "list_accounts",
+    annotations: { title: "List accounts", readOnlyHint: true, openWorldHint: true },
     description:
       "List connected social accounts in the SocialClaw workspace. Optionally filter by provider (x, facebook, instagram_business, instagram, linkedin, linkedin_page, pinterest, tiktok, telegram, discord, youtube, reddit, wordpress).",
     inputSchema: {
@@ -38,6 +39,7 @@ const TOOLS = [
   },
   {
     name: "account_capabilities",
+    annotations: { title: "Account capabilities", readOnlyHint: true, openWorldHint: true },
     description:
       "Get publish capabilities and provider rules for connected accounts: what media is allowed, text limits, and whether publishing is currently possible. Pass accountId for one account, or provider to filter, or neither for all.",
     inputSchema: {
@@ -57,6 +59,7 @@ const TOOLS = [
   },
   {
     name: "connect_account",
+    annotations: { title: "Connect account", readOnlyHint: false, destructiveHint: false, openWorldHint: true },
     description:
       "Start connecting a new social account. For OAuth providers this returns an authorizeUrl the user must open in a browser. Telegram requires botToken and chatId; Discord requires webhookUrl.",
     inputSchema: {
@@ -79,6 +82,7 @@ const TOOLS = [
   },
   {
     name: "upload_asset",
+    annotations: { title: "Upload asset", readOnlyHint: false, destructiveHint: false, openWorldHint: true },
     description:
       "Upload a local media file (image or video) to SocialClaw hosted storage. Returns an asset id and a public URL that can be used as media_link in schedules.",
     inputSchema: {
@@ -100,6 +104,7 @@ const TOOLS = [
   },
   {
     name: "validate_schedule",
+    annotations: { title: "Validate schedule", readOnlyHint: true, openWorldHint: true },
     description:
       "Validate a schedule document against provider rules, media limits, account state, and publish times WITHOUT creating any posts. Always run this before apply_schedule.",
     inputSchema: {
@@ -111,6 +116,7 @@ const TOOLS = [
   },
   {
     name: "preview_campaign",
+    annotations: { title: "Preview campaign", readOnlyHint: true, openWorldHint: true },
     description:
       "Preview how a campaign schedule document expands into concrete posts and steps without creating anything.",
     inputSchema: {
@@ -122,6 +128,7 @@ const TOOLS = [
   },
   {
     name: "apply_schedule",
+    annotations: { title: "Apply schedule", readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     description:
       "Create a publishing run from a schedule document. Posts are scheduled or published through connected accounts. Send an idempotencyKey so retries do not create duplicate runs; one is generated when omitted.",
     inputSchema: {
@@ -140,6 +147,7 @@ const TOOLS = [
   },
   {
     name: "publish_draft",
+    annotations: { title: "Publish draft", readOnlyHint: false, destructiveHint: false, openWorldHint: true },
     description: "Publish a previously created draft run, optionally at a given ISO-8601 start time.",
     inputSchema: {
       type: "object",
@@ -158,6 +166,7 @@ const TOOLS = [
   },
   {
     name: "list_posts",
+    annotations: { title: "List posts", readOnlyHint: true, openWorldHint: true },
     description: "List posts in the workspace with optional filters.",
     inputSchema: {
       type: "object",
@@ -184,6 +193,7 @@ const TOOLS = [
   },
   {
     name: "get_post",
+    annotations: { title: "Get post", readOnlyHint: true, openWorldHint: true },
     description: "Get one post including its delivery state and provider identifiers.",
     inputSchema: {
       type: "object",
@@ -194,6 +204,7 @@ const TOOLS = [
   },
   {
     name: "post_attempts",
+    annotations: { title: "Post attempts", readOnlyHint: true, openWorldHint: true },
     description: "List publish attempts for a post, including provider errors. Use this to debug failed posts.",
     inputSchema: {
       type: "object",
@@ -204,6 +215,7 @@ const TOOLS = [
   },
   {
     name: "retry_post",
+    annotations: { title: "Retry post", readOnlyHint: false, destructiveHint: false, openWorldHint: true },
     description: "Retry a failed post.",
     inputSchema: {
       type: "object",
@@ -214,6 +226,7 @@ const TOOLS = [
   },
   {
     name: "cancel_post",
+    annotations: { title: "Cancel post", readOnlyHint: false, destructiveHint: true, openWorldHint: true },
     description: "Cancel a scheduled post before it publishes.",
     inputSchema: {
       type: "object",
@@ -224,6 +237,7 @@ const TOOLS = [
   },
   {
     name: "run_status",
+    annotations: { title: "Run status", readOnlyHint: true, openWorldHint: true },
     description: "Get the status summary of a publishing run and its posts.",
     inputSchema: {
       type: "object",
@@ -234,6 +248,7 @@ const TOOLS = [
   },
   {
     name: "get_analytics",
+    annotations: { title: "Get analytics", readOnlyHint: true, openWorldHint: true },
     description:
       "Get analytics snapshots for a post, an account, or a run. scope must be post, account, or run; id is the matching identifier.",
     inputSchema: {
@@ -254,12 +269,14 @@ const TOOLS = [
   },
   {
     name: "workspace_usage",
+    annotations: { title: "Workspace usage", readOnlyHint: true, openWorldHint: true },
     description: "Get workspace usage counters and plan entitlement consumption.",
     inputSchema: { type: "object", properties: {} },
     run: async (api) => api("GET", "/v1/me/usage")
   },
   {
     name: "workspace_health",
+    annotations: { title: "Workspace health", readOnlyHint: true, openWorldHint: true },
     description:
       "Get workspace health, including connection state across providers. Pass provider to check one provider's connections.",
     inputSchema: {
@@ -392,7 +409,13 @@ export async function runMcpServer() {
     if (method === "tools/list") {
       write(
         jsonRpcResult(id, {
-          tools: TOOLS.map(({ name, description, inputSchema }) => ({ name, description, inputSchema }))
+          tools: TOOLS.map(({ name, description, inputSchema, annotations }) => ({
+            name,
+            title: annotations?.title,
+            description,
+            inputSchema,
+            annotations
+          }))
         })
       );
       return;

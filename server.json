@@ -6,13 +6,13 @@
     "url": "https://github.com/ndesv21/socialclaw",
     "source": "github"
   },
-  "version": "0.1.15",
+  "version": "0.1.16",
   "packages": [
     {
       "registryType": "npm",
       "registryBaseUrl": "https://registry.npmjs.org",
       "identifier": "socialclaw",
-      "version": "0.1.15",
+      "version": "0.1.16",
       "runtimeHint": "npx",
       "transport": { "type": "stdio" },
       "runtimeArguments": [
