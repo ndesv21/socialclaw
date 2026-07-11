@@ -15,6 +15,7 @@ const TIKTOK_PRIVACY_OPTIONS = [
   "MUTUAL_FOLLOW_FRIENDS",
   "SELF_ONLY"
 ];
+const TIKTOK_POST_MODES = ["direct_post", "draft"];
 const TELEGRAM_PARSE_MODES = ["none", "HTML", "MarkdownV2"];
 const YOUTUBE_PRIVACY_OPTIONS = ["private", "unlisted", "public"];
 const WORDPRESS_POST_STATUSES = ["publish", "draft", "pending", "private"];
@@ -336,11 +337,19 @@ export function describePublishSettingsForAccount(accountOrDescriptor) {
       target,
       fields: [
         {
+          id: "tiktokPostMode",
+          type: "enum",
+          required: false,
+          default: "direct_post",
+          options: TIKTOK_POST_MODES,
+          description: "Choose `direct_post` to publish to TikTok at the scheduled time, or `draft` to upload the media to the account's TikTok inbox as a draft the creator finishes and posts inside the TikTok app. Draft uploads ignore audience, interaction, and disclosure settings because the creator chooses those in the TikTok app, and they require the TikTok connection to include the video.upload scope."
+        },
+        {
           id: "privacyLevel",
           type: "enum",
           required: true,
           options: TIKTOK_PRIVACY_OPTIONS,
-          description: "Choose who can view this TikTok post before you publish."
+          description: "Choose who can view this TikTok post before you publish. Required for direct_post mode; ignored when tiktokPostMode is draft."
         },
         {
           id: "duetEnabled",
@@ -963,6 +972,7 @@ export function validatePublishSettingsForTarget({ provider, account, settings, 
     assertNoUnknownSettings(
       normalizedSettings,
       [
+        "tiktokPostMode",
         "privacyLevel",
         "duetEnabled",
         "commentEnabled",
@@ -975,6 +985,37 @@ export function validatePublishSettingsForTarget({ provider, account, settings, 
       ],
       "tiktok_settings_unsupported"
     );
+
+    const tiktokPostMode = String(normalizedSettings.tiktokPostMode || "direct_post").trim();
+    if (!TIKTOK_POST_MODES.includes(tiktokPostMode)) {
+      throw new AppError(`Invalid TikTok tiktokPostMode: ${tiktokPostMode}`, {
+        statusCode: 422,
+        code: "tiktok_post_mode_invalid",
+        details: {
+          supportedValues: TIKTOK_POST_MODES
+        }
+      });
+    }
+
+    if (tiktokPostMode === "draft") {
+      // Draft uploads land in the creator's TikTok inbox; audience, interaction,
+      // and disclosure choices happen inside the TikTok app, so any values sent
+      // for those fields are dropped rather than rejected.
+      const draftPhotoCoverIndex =
+        normalizedSettings.photoCoverIndex === undefined || normalizedSettings.photoCoverIndex === null || normalizedSettings.photoCoverIndex === ""
+          ? 0
+          : Number(normalizedSettings.photoCoverIndex);
+      if (!Number.isInteger(draftPhotoCoverIndex) || draftPhotoCoverIndex < 0) {
+        throw new AppError("TikTok photoCoverIndex must be a non-negative integer", {
+          statusCode: 422,
+          code: "tiktok_photo_cover_index_invalid"
+        });
+      }
+      return {
+        tiktokPostMode,
+        photoCoverIndex: draftPhotoCoverIndex
+      };
+    }
 
     const privacyLevel = String(normalizedSettings.privacyLevel || "").trim();
     if (!privacyLevel) {
@@ -1034,6 +1075,7 @@ export function validatePublishSettingsForTarget({ provider, account, settings, 
     }
 
     return {
+      tiktokPostMode,
       privacyLevel,
       duetEnabled,
       commentEnabled,

@@ -324,7 +324,7 @@ curl -sS \
 
 **Pinterest** (`pinterest`) — board-centric. Standard pins, video pins, multi-image pins. Use discovery actions to inspect boards, sections, and catalogs. Product, collection, and idea surfaces are capability-gated or beta.
 
-**TikTok** (`tiktok`) — one video or one photo gallery per post. Photo galleries support up to 35 images, `autoAddMusic`, and `photoCoverIndex`; selecting a specific TikTok song or sound is not exposed by TikTok's API.
+**TikTok** (`tiktok`) — one video or one photo gallery per post. Photo galleries support up to 35 images, `autoAddMusic`, and `photoCoverIndex`; selecting a specific TikTok song or sound is not exposed by TikTok's API. `settings.tiktokPostMode: "draft"` uploads to the account's TikTok drafts (inbox) instead of publishing; the creator finishes the post in the TikTok app (needs the `video.upload` scope — older connections must reconnect once).
 
 **Telegram** (`telegram`) — bot-based posting. Connected manually with a bot token and `chat_id` or `@channelusername`, not via OAuth. One optional image or video per post.
 

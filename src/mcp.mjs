@@ -11,14 +11,93 @@ const DEFAULT_BASE_URL = process.env.SC_BASE_URL || "https://getsocialclaw.com";
 const SERVER_NAME = "socialclaw";
 const SERVER_VERSION = "0.1.6";
 const PROTOCOL_VERSION = "2025-06-18";
-const SUPPORTED_PROTOCOL_VERSIONS = new Set(["2024-11-05", "2025-03-26", "2025-06-18"]);
+const SUPPORTED_PROTOCOL_VERSIONS = new Set(["2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25"]);
 
 const SCHEDULE_INPUT_SCHEMA = {
   type: "object",
   description:
-    "SocialClaw schedule document. Minimal shape: { timezone, posts: [{ account, name, description, publish_at, media_link? }] }. Campaign documents use { timezone, campaigns: [...] }.",
+    "SocialClaw schedule document. Minimal shape: { timezone, posts: [{ account, name, description, publish_at, media_link? }] }. Campaign documents use { timezone, campaigns: [...] }. Per-post provider settings go in settings, e.g. TikTok drafts: settings: { tiktokPostMode: \"draft\" } uploads the media to the account's TikTok drafts (inbox) instead of publishing, and the creator finishes the post inside the TikTok app.",
   additionalProperties: true
 };
+
+const POST_LIST_DEFAULT_LIMIT = 20;
+const POST_LIST_MAX_LIMIT = 50;
+
+function normalizePostListLimit(value) {
+  const parsed = Number(value || POST_LIST_DEFAULT_LIMIT);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return POST_LIST_DEFAULT_LIMIT;
+  }
+  return Math.min(POST_LIST_MAX_LIMIT, Math.floor(parsed));
+}
+
+function normalizePostListOffset(value) {
+  const parsed = Number(value || 0);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return 0;
+  }
+  return Math.floor(parsed);
+}
+
+function compactText(value, maxLength = 240) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (text.length <= maxLength) {
+    return text || null;
+  }
+  return `${text.slice(0, maxLength - 3)}...`;
+}
+
+function compactError(value) {
+  if (!value) {
+    return null;
+  }
+  if (typeof value === "string") {
+    return compactText(value);
+  }
+  if (typeof value === "object") {
+    return compactText(value.message || value.code || JSON.stringify(value), 240);
+  }
+  return compactText(value);
+}
+
+function summarizePostForList(post) {
+  const assets = Array.isArray(post.assets) ? post.assets : [];
+  const assetIds = Array.isArray(post.assetIds) ? post.assetIds : [];
+  return {
+    id: post.id || null,
+    status: post.status || null,
+    provider: post.provider || null,
+    account: post.account || null,
+    name: post.name || post.title || null,
+    text: compactText(post.description || post.text || post.caption || post.body || ""),
+    publishAtUtc: post.publishAtUtc || post.publish_at || post.publishAt || null,
+    publishedAt: post.publishedAt || null,
+    runId: post.runId || null,
+    campaignId: post.campaignId || null,
+    interactionType: post.interactionType || "post",
+    mediaCount: Math.max(assets.length, assetIds.length),
+    providerUrl: post.providerUrl || null,
+    providerError: compactError(post.providerError)
+  };
+}
+
+function summarizePostList(result) {
+  const posts = Array.isArray(result.posts) ? result.posts : [];
+  const filters = result.filters && typeof result.filters === "object" ? result.filters : {};
+  const total = Number.isFinite(Number(result.total)) ? Number(result.total) : posts.length;
+  const offset = Number.isFinite(Number(filters.offset)) ? Number(filters.offset) : 0;
+  const returned = posts.length;
+  return {
+    ok: Boolean(result.ok),
+    filters,
+    total,
+    returned,
+    truncated: offset + returned < total,
+    nextOffset: offset + returned < total ? offset + returned : null,
+    note: "list_posts returns compact summaries. Use get_post with a post id for full assets and provider payload.",
+    posts: posts.map(summarizePostForList)
+  };
+}
 
 const TOOLS = [
   {
@@ -176,7 +255,8 @@ const TOOLS = [
         account: { type: "string", description: "Account handle filter." },
         provider: { type: "string" },
         campaignId: { type: "string" },
-        limit: { type: "number" }
+        limit: { type: "number", description: "Maximum posts to return. Defaults to 20 and is capped at 50." },
+        offset: { type: "number", description: "Offset for paging through results." }
       }
     },
     run: async (api, input) => {
@@ -186,9 +266,37 @@ const TOOLS = [
       if (input.account) params.set("account", String(input.account));
       if (input.provider) params.set("provider", String(input.provider));
       if (input.campaignId) params.set("campaignId", String(input.campaignId));
-      if (input.limit) params.set("limit", String(input.limit));
+      params.set("limit", String(normalizePostListLimit(input.limit)));
+      const offset = normalizePostListOffset(input.offset);
+      if (offset > 0) params.set("offset", String(offset));
       const suffix = params.size > 0 ? `?${params}` : "";
-      return api("GET", `/v1/posts${suffix}`);
+      return summarizePostList(await api("GET", `/v1/posts${suffix}`));
+    }
+  },
+  {
+    name: "list_assets",
+    annotations: { title: "List assets", readOnlyHint: true, openWorldHint: true },
+    description:
+      "List media (images/videos) the user has uploaded to their SocialClaw library, newest first. Each asset includes a publicUrl usable directly as media_link in validate_schedule/apply_schedule. Use this to find a previously uploaded file (e.g. from the dashboard) to post. Optionally filter by kind (image/video), mime, or a text query over filename/id.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "Optional text match over filename, id, kind, mime, or url." },
+        kind: { type: "string", description: "Filter by media kind: image or video.", enum: ["image", "video"] },
+        mime: { type: "string", description: "Optional mime prefix filter, e.g. video/mp4." },
+        sort: { type: "string", description: "created_desc (default, newest first) or created_asc.", enum: ["created_desc", "created_asc"] },
+        limit: { type: "number", description: "Maximum assets to return. Defaults to 24, capped at 48." }
+      }
+    },
+    run: async (api, input) => {
+      const params = new URLSearchParams();
+      if (input.query) params.set("query", String(input.query));
+      if (input.kind) params.set("kind", String(input.kind));
+      if (input.mime) params.set("mime", String(input.mime));
+      if (input.sort) params.set("sort", String(input.sort));
+      if (input.limit != null) params.set("limit", String(input.limit));
+      const suffix = params.size > 0 ? `?${params}` : "";
+      return api("GET", `/v1/assets${suffix}`);
     }
   },
   {

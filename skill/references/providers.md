@@ -54,6 +54,7 @@
 - Photo galleries support one to 35 public image URLs.
 - `autoAddMusic` lets TikTok add recommended music automatically to photo posts; selecting a specific song or sound is not exposed by the Content Posting API.
 - `photoCoverIndex` selects the zero-based cover image for photo posts.
+- `settings.tiktokPostMode: "draft"` uploads the media into the account's TikTok drafts (inbox) instead of publishing. The creator gets a TikTok notification and finishes the post inside the TikTok app, so audience, interaction, and disclosure settings are ignored for drafts. Requires the TikTok connection to include the `video.upload` scope; accounts connected before draft support must reconnect once.
 - Do not mix image and video assets in one TikTok post.
 - Normalize photo-gallery images before upload. Prefer 1080x1920 JPEGs for vertical slides, or another standard TikTok-compatible aspect/size. Oversized or unusual dimensions may pass SocialClaw validation and initial TikTok acceptance, then fail during provider processing with `picture_size_check_failed`.
 - Avoid setting a visible `name`/title unless the user explicitly wants one. Put TikTok-facing copy in `description`.
