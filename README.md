@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://getsocialclaw.com">Website</a> ·
+  <a href="https://getsocialclaw.com"><strong>Official Website: getsocialclaw.com</strong></a> ·
   <a href="https://getsocialclaw.com/dashboard">Dashboard</a> ·
   <a href="https://www.npmjs.com/package/socialclaw">npm</a> ·
   <a href="https://github.com/ndesv21/socialclaw/tree/main/skill">Skill Bundle</a>
@@ -22,14 +22,13 @@
   </picture>
 </p>
 
-SocialClaw is the public home for:
+**[getsocialclaw.com](https://getsocialclaw.com) is the official SocialClaw website** — the hosted dashboard, API, and account sign-up all live there.
+
+This repo is the public home for:
 - the `socialclaw` npm CLI
 - the OpenClaw and ClawHub skill bundle
 - the Claude Code plugin and `/socialclaw` command asset
 - public usage docs, provider notes, and schedule examples
-
-The hosted SocialClaw service lives at:
-- `https://getsocialclaw.com`
 
 ## Install
 
