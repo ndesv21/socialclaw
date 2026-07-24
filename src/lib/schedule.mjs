@@ -301,19 +301,55 @@ function normalizePost(post, rootTimezone, metadata = {}) {
   return normalized;
 }
 
+function expandInstagramPostAndStory(post) {
+  const isInstagram = ["instagram", "instagram_business", "meta"].includes(post.provider) &&
+    /^(?:instagram:|meta:instagram:)/i.test(String(post.account || ""));
+  if (!isInstagram || post.settings?.instagramPlacement !== "post_and_story") {
+    return [post];
+  }
+
+  if (!Array.isArray(post.assets) || post.assets.length !== 1) {
+    throw new AppError("Instagram post + Story requires exactly one image or video asset", {
+      code: "instagram_post_and_story_single_media_required",
+      statusCode: 422
+    });
+  }
+
+  const feedPost = {
+    ...post,
+    settings: {
+      ...post.settings,
+      instagramPlacement: "post"
+    }
+  };
+  const storyPost = {
+    ...post,
+    stepId: post.stepId ? `${post.stepId}__story` : null,
+    parentStepId: null,
+    stepDelayMs: 0,
+    settings: {
+      ...post.settings,
+      instagramPlacement: "story"
+    }
+  };
+  return [feedPost, storyPost];
+}
+
 function normalizeLegacyPosts(posts, timezone) {
   return {
     sourceModel: "posts_v1",
     campaigns: [],
-    normalizedPosts: posts.map((post, index) =>
-      normalizePost(post, timezone, {
-        sourceModel: "posts_v1",
-        stepId: `post_${index + 1}`,
-        stepIndex: 0,
-        targetIndex: index,
-        campaignId: null,
-        campaignName: null
-      })
+    normalizedPosts: posts.flatMap((post, index) =>
+      expandInstagramPostAndStory(
+        normalizePost(post, timezone, {
+          sourceModel: "posts_v1",
+          stepId: `post_${index + 1}`,
+          stepIndex: 0,
+          targetIndex: index,
+          campaignId: null,
+          campaignName: null
+        })
+      )
     )
   };
 }
@@ -422,7 +458,7 @@ function normalizeCampaigns(campaigns, timezone) {
               : "")
           ).trim() || null;
 
-        normalizedPosts.push(
+        const normalizedStepPosts = expandInstagramPostAndStory(
           normalizePost(
             {
               ...step,
@@ -450,8 +486,9 @@ function normalizeCampaigns(campaigns, timezone) {
             }
           )
         );
+        normalizedPosts.push(...normalizedStepPosts);
 
-        summary.postCount += 1;
+        summary.postCount += normalizedStepPosts.length;
       });
     });
 

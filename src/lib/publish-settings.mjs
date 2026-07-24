@@ -8,6 +8,22 @@ const X_REPLY_OPTIONS = [X_REPLY_DEFAULT, ...X_REPLY_RESTRICTIVE_OPTIONS];
 const FACEBOOK_PAGE_MODES = ["auto", "feed", "photo", "video"];
 const FACEBOOK_VIDEO_UPLOAD_MODES = ["auto", "native", "remote_url"];
 const INSTAGRAM_MODES = ["auto", "image", "reel"];
+const INSTAGRAM_PLACEMENTS = ["post", "story", "post_and_story"];
+const INSTAGRAM_TRIAL_REEL_STRATEGIES = ["", "MANUAL", "SS_PERFORMANCE"];
+const INSTAGRAM_STANDALONE_SETTING_KEYS = [
+  "instagramPublishMode",
+  "instagramPlacement",
+  "instagramAltTexts",
+  "instagramUserTags",
+  "instagramCollaborators",
+  "instagramCoverUrl",
+  "instagramThumbOffsetMs",
+  "instagramShareToFeed",
+  "instagramAudioName",
+  "instagramTrialReelGraduationStrategy",
+  "instagramIsAiGenerated",
+  "instagramLocationId"
+];
 const SNAPCHAT_MODES = ["spotlight", "story", "saved_story"];
 const TIKTOK_PRIVACY_OPTIONS = [
   "PUBLIC_TO_EVERYONE",
@@ -63,6 +79,227 @@ function isImageMedia(mediaLink) {
 function isMp4Media(mediaLink) {
   const clean = String(mediaLink || "").split("?")[0].toLowerCase();
   return clean.endsWith(".mp4");
+}
+
+function normalizeInstagramUsername(value, settingId) {
+  const username = String(value || "").trim().replace(/^@+/, "");
+  if (!username || username.length > 30 || !/^[A-Za-z0-9._]+$/.test(username)) {
+    throw new AppError(`${settingId} contains an invalid Instagram username`, {
+      statusCode: 422,
+      code: "instagram_username_invalid",
+      details: { settingId, username }
+    });
+  }
+  return username;
+}
+
+function normalizeInstagramAltTexts(value) {
+  if (value === undefined || value === null) {
+    return [];
+  }
+  if (!Array.isArray(value) || value.length > 10) {
+    throw new AppError("instagramAltTexts must be an array with up to 10 entries", {
+      statusCode: 422,
+      code: "instagram_alt_texts_invalid"
+    });
+  }
+  const normalized = value.map((entry, mediaIndex) => {
+    if (entry === undefined || entry === null || entry === "") {
+      return "";
+    }
+    if (typeof entry !== "string") {
+      throw new AppError(`instagramAltTexts[${mediaIndex}] must be a string`, {
+        statusCode: 422,
+        code: "instagram_alt_text_invalid"
+      });
+    }
+    const text = entry.trim();
+    if (text.length > 1000) {
+      throw new AppError(`instagramAltTexts[${mediaIndex}] must be 1000 characters or shorter`, {
+        statusCode: 422,
+        code: "instagram_alt_text_invalid"
+      });
+    }
+    return text;
+  });
+  while (normalized.length && !normalized[normalized.length - 1]) {
+    normalized.pop();
+  }
+  return normalized;
+}
+
+function normalizeInstagramUserTags(value, { needsImageCoordinates = false } = {}) {
+  if (value === undefined || value === null) {
+    return [];
+  }
+  if (!Array.isArray(value) || value.length > 20) {
+    throw new AppError("instagramUserTags must be an array with up to 20 entries", {
+      statusCode: 422,
+      code: "instagram_user_tags_invalid"
+    });
+  }
+
+  const seen = new Set();
+  return value.map((entry, index) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      throw new AppError(`instagramUserTags[${index}] must be an object`, {
+        statusCode: 422,
+        code: "instagram_user_tag_invalid"
+      });
+    }
+    const username = normalizeInstagramUsername(entry.username, `instagramUserTags[${index}]`);
+    const mediaIndex = entry.mediaIndex === undefined || entry.mediaIndex === null || entry.mediaIndex === ""
+      ? 0
+      : Number(entry.mediaIndex);
+    if (!Number.isInteger(mediaIndex) || mediaIndex < 0 || mediaIndex > 9) {
+      throw new AppError(`instagramUserTags[${index}].mediaIndex must be an integer from 0 to 9`, {
+        statusCode: 422,
+        code: "instagram_user_tag_media_index_invalid"
+      });
+    }
+
+    const key = `${mediaIndex}:${username.toLowerCase()}`;
+    if (seen.has(key)) {
+      throw new AppError(`instagramUserTags contains duplicate tag @${username} for media ${mediaIndex + 1}`, {
+        statusCode: 422,
+        code: "instagram_user_tag_duplicate"
+      });
+    }
+    seen.add(key);
+
+    const normalized = { username, mediaIndex };
+    for (const coordinate of ["x", "y"]) {
+      if (entry[coordinate] === undefined || entry[coordinate] === null || entry[coordinate] === "") {
+        if (needsImageCoordinates) {
+          normalized[coordinate] = 0.5;
+        }
+        continue;
+      }
+      const coordinateValue = Number(entry[coordinate]);
+      if (!Number.isFinite(coordinateValue) || coordinateValue < 0 || coordinateValue > 1) {
+        throw new AppError(`instagramUserTags[${index}].${coordinate} must be between 0 and 1`, {
+          statusCode: 422,
+          code: "instagram_user_tag_coordinate_invalid"
+        });
+      }
+      normalized[coordinate] = coordinateValue;
+    }
+    return normalized;
+  });
+}
+
+function normalizeInstagramCollaborators(value) {
+  if (value === undefined || value === null) {
+    return [];
+  }
+  if (!Array.isArray(value) || value.length > 3) {
+    throw new AppError("instagramCollaborators must be an array with up to 3 usernames", {
+      statusCode: 422,
+      code: "instagram_collaborators_invalid"
+    });
+  }
+  const collaborators = value.map((entry) => normalizeInstagramUsername(entry, "instagramCollaborators"));
+  if (new Set(collaborators.map((entry) => entry.toLowerCase())).size !== collaborators.length) {
+    throw new AppError("instagramCollaborators cannot contain duplicates", {
+      statusCode: 422,
+      code: "instagram_collaborators_invalid"
+    });
+  }
+  return collaborators;
+}
+
+function normalizeInstagramHttpsUrl(value, settingId) {
+  const clean = String(value || "").trim();
+  if (!clean) {
+    return "";
+  }
+  try {
+    const url = new URL(clean);
+    if (url.protocol !== "https:") {
+      throw new Error("not https");
+    }
+  } catch {
+    throw new AppError(`${settingId} must be a public HTTPS URL`, {
+      statusCode: 422,
+      code: "instagram_url_invalid",
+      details: { settingId }
+    });
+  }
+  return clean;
+}
+
+function normalizeInstagramStandaloneAdvancedSettings(settings, { mediaLink, placement }) {
+  const isVideo = isVideoMedia(mediaLink);
+  const publishesToFeed = placement !== "story";
+  const publishesReel = publishesToFeed && isVideo;
+  const altTexts = normalizeInstagramAltTexts(settings.instagramAltTexts);
+  const userTags = normalizeInstagramUserTags(settings.instagramUserTags, {
+    needsImageCoordinates: publishesToFeed && !isVideo
+  });
+  const collaborators = normalizeInstagramCollaborators(settings.instagramCollaborators);
+  const coverUrl = normalizeInstagramHttpsUrl(settings.instagramCoverUrl, "instagramCoverUrl");
+  const audioName = String(settings.instagramAudioName || "").trim();
+  if (audioName.length > 1000) {
+    throw new AppError("instagramAudioName must be 1000 characters or shorter", {
+      statusCode: 422,
+      code: "instagram_audio_name_invalid"
+    });
+  }
+
+  let thumbOffsetMs = null;
+  if (settings.instagramThumbOffsetMs !== undefined && settings.instagramThumbOffsetMs !== null && settings.instagramThumbOffsetMs !== "") {
+    thumbOffsetMs = Number(settings.instagramThumbOffsetMs);
+    if (!Number.isInteger(thumbOffsetMs) || thumbOffsetMs < 0 || thumbOffsetMs > 900000) {
+      throw new AppError("instagramThumbOffsetMs must be an integer from 0 to 900000", {
+        statusCode: 422,
+        code: "instagram_thumb_offset_invalid"
+      });
+    }
+  }
+
+  if (settings.instagramShareToFeed !== undefined && typeof settings.instagramShareToFeed !== "boolean") {
+    throw new AppError("instagramShareToFeed must be a boolean", {
+      statusCode: 422,
+      code: "instagram_share_to_feed_invalid"
+    });
+  }
+  if (settings.instagramIsAiGenerated !== undefined && typeof settings.instagramIsAiGenerated !== "boolean") {
+    throw new AppError("instagramIsAiGenerated must be a boolean", {
+      statusCode: 422,
+      code: "instagram_ai_disclosure_invalid"
+    });
+  }
+
+  const trialStrategy = String(settings.instagramTrialReelGraduationStrategy || "").trim().toUpperCase();
+  if (!INSTAGRAM_TRIAL_REEL_STRATEGIES.includes(trialStrategy)) {
+    throw new AppError(`instagramTrialReelGraduationStrategy must be one of: ${INSTAGRAM_TRIAL_REEL_STRATEGIES.filter(Boolean).join(", ")}`, {
+      statusCode: 422,
+      code: "instagram_trial_reel_strategy_invalid"
+    });
+  }
+
+  const locationId = String(settings.instagramLocationId || "").trim();
+  if (locationId && !/^\d{1,32}$/.test(locationId)) {
+    throw new AppError("instagramLocationId must be a numeric Meta Page location ID", {
+      statusCode: 422,
+      code: "instagram_location_id_invalid"
+    });
+  }
+
+  return {
+    ...(publishesToFeed && altTexts.some(Boolean) ? { instagramAltTexts: altTexts } : {}),
+    ...(userTags.length ? { instagramUserTags: userTags } : {}),
+    ...(publishesToFeed && collaborators.length ? { instagramCollaborators: collaborators } : {}),
+    ...(publishesReel && coverUrl ? { instagramCoverUrl: coverUrl } : {}),
+    ...(publishesToFeed && thumbOffsetMs !== null ? { instagramThumbOffsetMs: thumbOffsetMs } : {}),
+    ...(publishesReel && settings.instagramShareToFeed !== undefined
+      ? { instagramShareToFeed: settings.instagramShareToFeed }
+      : {}),
+    ...(publishesReel && audioName ? { instagramAudioName: audioName } : {}),
+    ...(publishesReel && trialStrategy ? { instagramTrialReelGraduationStrategy: trialStrategy } : {}),
+    ...(settings.instagramIsAiGenerated === true ? { instagramIsAiGenerated: true } : {}),
+    ...(publishesToFeed && locationId ? { instagramLocationId: locationId } : {})
+  };
 }
 
 export function inferPublishTarget(accountOrDescriptor) {
@@ -254,29 +491,13 @@ export function describePublishSettingsForAccount(accountOrDescriptor) {
       target,
       fields: [
         {
-          id: "instagramPublishMode",
+          id: "instagramPlacement",
           type: "enum",
           required: false,
-          default: "auto",
-          options: INSTAGRAM_MODES,
-          description: "Choose whether SocialClaw should publish the Instagram step as an image or reel. `auto` follows the media type."
-        }
-      ],
-      discovery: {
-        publishShape: "single_media_post",
-        mediaDelivery: "meta_fetches_public_media_url"
-      }
-    };
-  }
-
-  if (
-    (target.provider === "instagram_business" && target.accountType === "instagram_business_linked") ||
-    (target.provider === "instagram" && target.accountType === "instagram_standalone")
-  ) {
-    return {
-      supported: true,
-      target,
-      fields: [
+          default: "post",
+          options: INSTAGRAM_PLACEMENTS,
+          description: "Publish to the profile, to Stories only, or create independently tracked profile and Story publishes. Stories require one image or video."
+        },
         {
           id: "instagramPublishMode",
           type: "enum",
@@ -287,11 +508,136 @@ export function describePublishSettingsForAccount(accountOrDescriptor) {
         }
       ],
       discovery: {
-        publishShape: "single_media_post",
-        mediaDelivery:
-          target.provider === "instagram_business"
-            ? "meta_fetches_public_media_url"
-            : "instagram_fetches_public_media_url"
+        publishShape: "profile_post_story_or_independent_post_and_story",
+        mediaDelivery: "meta_fetches_public_media_url"
+      }
+    };
+  }
+
+  if (target.provider === "instagram_business" && target.accountType === "instagram_business_linked") {
+    return {
+      supported: true,
+      target,
+      fields: [
+        {
+          id: "instagramPlacement",
+          type: "enum",
+          required: false,
+          default: "post",
+          options: INSTAGRAM_PLACEMENTS,
+          description: "Publish to the profile, to Stories only, or create independently tracked profile and Story publishes. Stories require one image or video."
+        },
+        {
+          id: "instagramPublishMode",
+          type: "enum",
+          required: false,
+          default: "auto",
+          options: INSTAGRAM_MODES,
+          description: "Choose whether SocialClaw should publish the Instagram step as an image or reel. `auto` follows the media type."
+        }
+      ],
+      discovery: {
+        publishShape: "profile_post_story_or_independent_post_and_story",
+        mediaDelivery: "meta_fetches_public_media_url"
+      }
+    };
+  }
+
+  if (target.provider === "instagram" && target.accountType === "instagram_standalone") {
+    return {
+      supported: true,
+      target,
+      fields: [
+        {
+          id: "instagramPlacement",
+          type: "enum",
+          required: false,
+          default: "post",
+          options: INSTAGRAM_PLACEMENTS,
+          description: "Publish to the profile, to Stories only, or create independently tracked profile and Story publishes. Stories require one image or video."
+        },
+        {
+          id: "instagramPublishMode",
+          type: "enum",
+          required: false,
+          default: "auto",
+          options: INSTAGRAM_MODES,
+          description: "Choose whether SocialClaw should publish the Instagram step as an image or reel. `auto` follows the media type."
+        },
+        {
+          id: "instagramAltTexts",
+          type: "media_alt_texts",
+          required: false,
+          default: [],
+          description: "Alternative text for each image, aligned to the zero-based media order. Up to 1000 characters per image; Reels and Stories do not support alt text."
+        },
+        {
+          id: "instagramUserTags",
+          type: "instagram_user_tags",
+          required: false,
+          default: [],
+          description: "Native people tags or Story mentions. Each entry accepts username, mediaIndex, and optional normalized x/y coordinates from 0 to 1."
+        },
+        {
+          id: "instagramCollaborators",
+          type: "string_list",
+          required: false,
+          default: [],
+          description: "Up to three Instagram usernames invited as collaborators on a feed image, Reel, or carousel. Stories do not support collaborators."
+        },
+        {
+          id: "instagramCoverUrl",
+          type: "string",
+          required: false,
+          description: "Public HTTPS JPEG URL for a Reel cover."
+        },
+        {
+          id: "instagramThumbOffsetMs",
+          type: "number",
+          required: false,
+          min: 0,
+          max: 900000,
+          description: "Video or Reel thumbnail frame offset in milliseconds. For a carousel, the same value applies to each video item. Ignored on a Reel when a custom cover URL is present."
+        },
+        {
+          id: "instagramShareToFeed",
+          type: "boolean",
+          required: false,
+          default: true,
+          description: "Allow a Reel to appear in both the Feed and Reels tabs."
+        },
+        {
+          id: "instagramAudioName",
+          type: "string",
+          required: false,
+          description: "Name the Reel's embedded original audio. This does not add music from Instagram's catalog."
+        },
+        {
+          id: "instagramTrialReelGraduationStrategy",
+          type: "enum",
+          required: false,
+          default: "",
+          options: INSTAGRAM_TRIAL_REEL_STRATEGIES,
+          description: "Publish as a Trial Reel and graduate it manually or automatically when Meta predicts strong performance."
+        },
+        {
+          id: "instagramIsAiGenerated",
+          type: "boolean",
+          required: false,
+          default: false,
+          description: "Self-disclose that AI was used to generate the media."
+        },
+        {
+          id: "instagramLocationId",
+          type: "string",
+          required: false,
+          description: "Numeric Meta Page ID for a physical location tagged on feed media. Story location stickers are not supported."
+        }
+      ],
+      discovery: {
+        publishShape: "profile_post_story_or_independent_post_and_story",
+        mediaDelivery: "instagram_fetches_public_media_url",
+        advancedPublishing: "standalone_instagram_container_options"
       }
     };
   }
@@ -850,8 +1196,13 @@ export function validatePublishSettingsForTarget({ provider, account, settings, 
   }
 
   if (target.provider === "meta" && target.accountType === "instagram_business") {
-    assertNoUnknownSettings(normalizedSettings, ["instagramPublishMode"], "instagram_settings_unsupported");
+    assertNoUnknownSettings(
+      normalizedSettings,
+      ["instagramPublishMode", "instagramPlacement"],
+      "instagram_settings_unsupported"
+    );
     const instagramPublishMode = String(normalizedSettings.instagramPublishMode || "auto");
+    const instagramPlacement = String(normalizedSettings.instagramPlacement || "post");
 
     if (!INSTAGRAM_MODES.includes(instagramPublishMode)) {
       throw new AppError(`Invalid Instagram instagramPublishMode: ${instagramPublishMode}`, {
@@ -863,14 +1214,26 @@ export function validatePublishSettingsForTarget({ provider, account, settings, 
       });
     }
 
-    if (mediaLink && isVideoMedia(mediaLink) && !["auto", "reel"].includes(instagramPublishMode)) {
+    if (!INSTAGRAM_PLACEMENTS.includes(instagramPlacement)) {
+      throw new AppError(`Invalid Instagram instagramPlacement: ${instagramPlacement}`, {
+        statusCode: 422,
+        code: "instagram_placement_invalid",
+        details: {
+          supportedValues: INSTAGRAM_PLACEMENTS
+        }
+      });
+    }
+
+    const effectiveInstagramPublishMode = instagramPlacement === "story" ? "auto" : instagramPublishMode;
+
+    if (mediaLink && isVideoMedia(mediaLink) && !["auto", "reel"].includes(effectiveInstagramPublishMode)) {
       throw new AppError("Instagram instagramPublishMode must be `reel` or `auto` for video media", {
         statusCode: 422,
         code: "instagram_publish_mode_mismatch"
       });
     }
 
-    if (mediaLink && isImageMedia(mediaLink) && !["auto", "image"].includes(instagramPublishMode)) {
+    if (mediaLink && isImageMedia(mediaLink) && !["auto", "image"].includes(effectiveInstagramPublishMode)) {
       throw new AppError("Instagram instagramPublishMode must be `image` or `auto` for image media", {
         statusCode: 422,
         code: "instagram_publish_mode_mismatch"
@@ -878,16 +1241,19 @@ export function validatePublishSettingsForTarget({ provider, account, settings, 
     }
 
     return {
-      instagramPublishMode
+      instagramPublishMode: effectiveInstagramPublishMode,
+      instagramPlacement
     };
   }
 
-  if (
-    (target.provider === "instagram_business" && target.accountType === "instagram_business_linked") ||
-    (target.provider === "instagram" && target.accountType === "instagram_standalone")
-  ) {
-    assertNoUnknownSettings(normalizedSettings, ["instagramPublishMode"], "instagram_settings_unsupported");
+  if (target.provider === "instagram_business" && target.accountType === "instagram_business_linked") {
+    assertNoUnknownSettings(
+      normalizedSettings,
+      ["instagramPublishMode", "instagramPlacement"],
+      "instagram_settings_unsupported"
+    );
     const instagramPublishMode = String(normalizedSettings.instagramPublishMode || "auto");
+    const instagramPlacement = String(normalizedSettings.instagramPlacement || "post");
 
     if (!INSTAGRAM_MODES.includes(instagramPublishMode)) {
       throw new AppError(`Invalid Instagram instagramPublishMode: ${instagramPublishMode}`, {
@@ -899,14 +1265,26 @@ export function validatePublishSettingsForTarget({ provider, account, settings, 
       });
     }
 
-    if (mediaLink && isVideoMedia(mediaLink) && !["auto", "reel"].includes(instagramPublishMode)) {
+    if (!INSTAGRAM_PLACEMENTS.includes(instagramPlacement)) {
+      throw new AppError(`Invalid Instagram instagramPlacement: ${instagramPlacement}`, {
+        statusCode: 422,
+        code: "instagram_placement_invalid",
+        details: {
+          supportedValues: INSTAGRAM_PLACEMENTS
+        }
+      });
+    }
+
+    const effectiveInstagramPublishMode = instagramPlacement === "story" ? "auto" : instagramPublishMode;
+
+    if (mediaLink && isVideoMedia(mediaLink) && !["auto", "reel"].includes(effectiveInstagramPublishMode)) {
       throw new AppError("Instagram instagramPublishMode must be `reel` or `auto` for video media", {
         statusCode: 422,
         code: "instagram_publish_mode_mismatch"
       });
     }
 
-    if (mediaLink && isImageMedia(mediaLink) && !["auto", "image"].includes(instagramPublishMode)) {
+    if (mediaLink && isImageMedia(mediaLink) && !["auto", "image"].includes(effectiveInstagramPublishMode)) {
       throw new AppError("Instagram instagramPublishMode must be `image` or `auto` for image media", {
         statusCode: 422,
         code: "instagram_publish_mode_mismatch"
@@ -921,7 +1299,70 @@ export function validatePublishSettingsForTarget({ provider, account, settings, 
     }
 
     return {
-      instagramPublishMode
+      instagramPublishMode: effectiveInstagramPublishMode,
+      instagramPlacement
+    };
+  }
+
+  if (target.provider === "instagram" && target.accountType === "instagram_standalone") {
+    assertNoUnknownSettings(
+      normalizedSettings,
+      INSTAGRAM_STANDALONE_SETTING_KEYS,
+      "instagram_settings_unsupported"
+    );
+    const instagramPublishMode = String(normalizedSettings.instagramPublishMode || "auto");
+    const instagramPlacement = String(normalizedSettings.instagramPlacement || "post");
+
+    if (!INSTAGRAM_MODES.includes(instagramPublishMode)) {
+      throw new AppError(`Invalid Instagram instagramPublishMode: ${instagramPublishMode}`, {
+        statusCode: 422,
+        code: "instagram_publish_mode_invalid",
+        details: {
+          supportedValues: INSTAGRAM_MODES
+        }
+      });
+    }
+
+    if (!INSTAGRAM_PLACEMENTS.includes(instagramPlacement)) {
+      throw new AppError(`Invalid Instagram instagramPlacement: ${instagramPlacement}`, {
+        statusCode: 422,
+        code: "instagram_placement_invalid",
+        details: {
+          supportedValues: INSTAGRAM_PLACEMENTS
+        }
+      });
+    }
+
+    const effectiveInstagramPublishMode = instagramPlacement === "story" ? "auto" : instagramPublishMode;
+
+    if (mediaLink && isVideoMedia(mediaLink) && !["auto", "reel"].includes(effectiveInstagramPublishMode)) {
+      throw new AppError("Instagram instagramPublishMode must be `reel` or `auto` for video media", {
+        statusCode: 422,
+        code: "instagram_publish_mode_mismatch"
+      });
+    }
+
+    if (mediaLink && isImageMedia(mediaLink) && !["auto", "image"].includes(effectiveInstagramPublishMode)) {
+      throw new AppError("Instagram instagramPublishMode must be `image` or `auto` for image media", {
+        statusCode: 422,
+        code: "instagram_publish_mode_mismatch"
+      });
+    }
+
+    if (!mediaLink) {
+      throw new AppError("Instagram publishing requires a media link", {
+        statusCode: 422,
+        code: "instagram_media_required"
+      });
+    }
+
+    return {
+      instagramPublishMode: effectiveInstagramPublishMode,
+      instagramPlacement,
+      ...normalizeInstagramStandaloneAdvancedSettings(normalizedSettings, {
+        mediaLink,
+        placement: instagramPlacement
+      })
     };
   }
 

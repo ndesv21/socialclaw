@@ -75,9 +75,20 @@ const LINKEDIN_MAX_VIDEO_BYTES = 5 * GB;
 const LINKEDIN_POST_RETRY_DELAYS_MS = [1500, 3000, 5000];
 const LINKEDIN_VIDEO_POLL_LIMIT = 30;
 const LINKEDIN_VIDEO_POLL_DELAY_MS = 2000;
-const INSTAGRAM_CAROUSEL_IMAGE_LIMIT = 10;
-const INSTAGRAM_VIDEO_CONTAINER_POLL_LIMIT = 20;
-const INSTAGRAM_VIDEO_CONTAINER_POLL_DELAY_MS = 3000;
+const INSTAGRAM_CAROUSEL_MEDIA_LIMIT = 10;
+const INSTAGRAM_CONTAINER_POLL_LIMIT = 20;
+const INSTAGRAM_CONTAINER_POLL_DELAY_MS = 3000;
+const INSTAGRAM_MEDIA_PREWARM_TIMEOUT_MS = 15_000;
+const INSTAGRAM_MEDIA_FETCH_RETRY_DELAYS_MS = [500, 1500];
+
+function instagramMediaFetchRetryDelaysMs() {
+  const rawTestDelayMs = process.env.SC_INSTAGRAM_MEDIA_FETCH_RETRY_DELAY_MS;
+  const testDelayMs = Number(rawTestDelayMs);
+  if (rawTestDelayMs !== undefined && rawTestDelayMs !== "" && Number.isFinite(testDelayMs) && testDelayMs >= 0) {
+    return [testDelayMs, testDelayMs];
+  }
+  return INSTAGRAM_MEDIA_FETCH_RETRY_DELAYS_MS;
+}
 const INSTAGRAM_CONTAINER_READY_STATUSES = new Set(["FINISHED"]);
 const INSTAGRAM_CONTAINER_FAILED_STATUSES = new Set(["ERROR", "EXPIRED"]);
 const FACEBOOK_PAGE_IMAGE_LIMIT = 10;
@@ -198,6 +209,108 @@ function tikTokPhotoImageUrl(asset) {
     return url;
   }
   return url.includes("?") ? `${url}&format=jpeg` : `${url}?format=jpeg`;
+}
+
+const TIKTOK_PHOTO_PREWARM_TIMEOUT_MS = 15_000;
+
+function tikTokPhotoFlagEnabled(name) {
+  const raw = process.env[name];
+  return raw === undefined || String(raw).trim() !== "0";
+}
+
+// TikTok's photo puller enforces a short fetch timeout per image and fails the
+// whole post when any image is slow (photo_pull_failed). Fetching each URL
+// ourselves right before init loads it into the API's in-memory media cache,
+// so the pull that follows is served from RAM instead of a cold cross-region
+// S3 read. Kill switch: SC_TIKTOK_PHOTO_PREWARM=0.
+async function warmTikTokPhotoImageUrls(photoImages) {
+  if (!tikTokPhotoFlagEnabled("SC_TIKTOK_PHOTO_PREWARM")) {
+    return;
+  }
+  await Promise.all(
+    photoImages.map(async (url) => {
+      if (!/^https?:\/\//i.test(String(url || ""))) {
+        return;
+      }
+      try {
+        const response = await fetch(url, { signal: AbortSignal.timeout(TIKTOK_PHOTO_PREWARM_TIMEOUT_MS) });
+        await response.arrayBuffer();
+      } catch {
+        // Warm-up is best effort; the publish proceeds either way.
+      }
+    })
+  );
+}
+
+function tikTokPhotoStatusPollDelaysMs() {
+  const override = Number(process.env.SC_TIKTOK_PHOTO_STATUS_POLL_DELAY_MS || 0);
+  if (Number.isFinite(override) && override > 0) {
+    return [override, override, override];
+  }
+  return [4000, 8000, 8000];
+}
+
+// TikTok acknowledges photo posts before fetching/validating the images, so a
+// publish_id alone is not success. A brief status check right after init turns
+// silent async failures (photo_pull_failed & friends) into real errors —
+// retryable when the pull itself failed, since a retry re-inits against a warm
+// media cache. Kill switch: SC_TIKTOK_PHOTO_STATUS_POLL=0.
+async function assertTikTokPhotoPublishHealthy({ apiBaseUrl, accessToken, publishId }) {
+  if (!tikTokPhotoFlagEnabled("SC_TIKTOK_PHOTO_STATUS_POLL")) {
+    return null;
+  }
+
+  let lastPayload = null;
+  for (const delayMs of tikTokPhotoStatusPollDelaysMs()) {
+    await sleep(delayMs);
+
+    let payload;
+    try {
+      payload =
+        unwrapTikTokPayload(
+          await requestJson(`${apiBaseUrl}/post/publish/status/fetch/`, {
+            method: "POST",
+            headers: {
+              authorization: `Bearer ${accessToken}`
+            },
+            json: {
+              publish_id: publishId
+            }
+          })
+        ) || {};
+    } catch {
+      // A status-endpoint hiccup must not fail an already accepted publish.
+      continue;
+    }
+
+    lastPayload = payload;
+    const status = String(payload.status || "").trim().toUpperCase();
+
+    if (status === "FAILED") {
+      const failReason = String(payload.fail_reason || "").trim() || "unknown";
+      throw new AppError(`TikTok rejected the photo post after acceptance: ${failReason}`, {
+        statusCode: 502,
+        code: "tiktok_photo_publish_failed",
+        retryable: failReason === "photo_pull_failed",
+        details: {
+          publishId,
+          failReason,
+          payload
+        }
+      });
+    }
+
+    if (status === "PUBLISH_COMPLETE" || status === "SEND_TO_USER_INBOX") {
+      return payload;
+    }
+  }
+
+  return lastPayload;
+}
+
+function tikTokPublicPostIdFromStatus(statusPayload) {
+  const ids = statusPayload?.publicaly_available_post_id;
+  return Array.isArray(ids) ? ids.find(Boolean) || null : null;
 }
 
 function maybeAltText(value) {
@@ -666,8 +779,12 @@ export function validateProviderPayload(normalizedPost) {
   }
 
   if (provider === "meta") {
+    const isMetaInstagram = accountLower.startsWith("meta:instagram:");
+    if (isMetaInstagram && instagramPlacementForPost(normalizedPost) !== "post") {
+      assertInstagramStoryAssets(mediaAssets);
+    }
     if (assetCount > 1) {
-      if (accountLower.startsWith("meta:instagram:")) {
+      if (isMetaInstagram) {
         assertInstagramCarouselAssets(mediaAssets);
       } else {
         if (assetCount > FACEBOOK_PAGE_IMAGE_LIMIT) {
@@ -739,6 +856,10 @@ export function validateProviderPayload(normalizedPost) {
   }
 
   if (provider === "instagram_business" || provider === "instagram") {
+    const instagramPlacement = instagramPlacementForPost(normalizedPost);
+    if (instagramPlacement !== "post") {
+      assertInstagramStoryAssets(mediaAssets);
+    }
     if (assetCount > 1) {
       assertInstagramCarouselAssets(mediaAssets);
     }
