@@ -618,7 +618,7 @@ export function describePublishSettingsForAccount(accountOrDescriptor) {
           required: false,
           default: "",
           options: INSTAGRAM_TRIAL_REEL_STRATEGIES,
-          description: "Publish as a Trial Reel and graduate it manually or automatically when Meta predicts strong performance."
+          description: "Publish as a Trial Reel and graduate it manually or automatically when Meta predicts strong performance. Meta exposes this only to accounts that meet its Trial Reels eligibility threshold."
         },
         {
           id: "instagramIsAiGenerated",
