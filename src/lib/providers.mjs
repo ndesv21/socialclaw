@@ -697,6 +697,42 @@ function sanitizeContentType(value) {
   return String(value).split(";", 1)[0].trim().toLowerCase() || null;
 }
 
+function assertInstagramCarouselAssets(mediaAssets) {
+  if (mediaAssets.length > INSTAGRAM_CAROUSEL_MEDIA_LIMIT) {
+    throw new AppError(`Instagram carousels support up to ${INSTAGRAM_CAROUSEL_MEDIA_LIMIT} image or video assets`, {
+      code: "instagram_carousel_limit_exceeded",
+      statusCode: 422
+    });
+  }
+
+  const unsupported = mediaAssets.find((asset) => !["image", "video"].includes(kindFromAsset(asset)));
+  if (unsupported) {
+    throw new AppError("Instagram carousels support image and video assets", {
+      code: "instagram_carousel_media_unsupported",
+      statusCode: 422
+    });
+  }
+}
+
+function assertInstagramStoryAssets(mediaAssets) {
+  if (mediaAssets.length !== 1) {
+    throw new AppError("Instagram Stories require exactly one image or video asset", {
+      code: "instagram_story_single_media_required",
+      statusCode: 422
+    });
+  }
+  if (!["image", "video"].includes(kindFromAsset(mediaAssets[0]))) {
+    throw new AppError("Instagram Stories require an image or video asset", {
+      code: "instagram_story_media_unsupported",
+      statusCode: 422
+    });
+  }
+}
+
+function instagramPlacementForPost(post) {
+  return String(post?.settings?.instagramPlacement || "post").trim().toLowerCase();
+}
+
 export function assertSupportedProvider(provider) {
   if (!SUPPORTED_PROVIDERS.includes(provider)) {
     throw new AppError(`Unsupported provider: ${provider}`, {
