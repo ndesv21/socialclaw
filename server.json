@@ -6,6 +6,7 @@
     "url": "https://github.com/ndesv21/socialclaw",
     "source": "github"
   },
+  "websiteUrl": "https://getsocialclaw.com",
   "version": "0.1.18",
   "packages": [
     {

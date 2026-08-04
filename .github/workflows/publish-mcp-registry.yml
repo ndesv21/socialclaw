@@ -28,5 +28,19 @@ jobs:
           jq --arg v "$VERSION" '.version = $v | .packages[0].version = $v' server.json > server.tmp.json
           mv server.tmp.json server.json
 
+      - name: Wait for npm version to be available
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          for i in $(seq 1 30); do
+            if curl -sf "https://registry.npmjs.org/socialclaw/$VERSION" > /dev/null; then
+              echo "npm has $VERSION"
+              exit 0
+            fi
+            echo "waiting for npm $VERSION ($i/30)"
+            sleep 10
+          done
+          echo "npm never published $VERSION"
+          exit 1
+
       - name: Publish server to MCP Registry
         run: ./mcp-publisher publish
