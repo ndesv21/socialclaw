@@ -688,7 +688,7 @@ export function describePublishSettingsForAccount(accountOrDescriptor) {
           required: false,
           default: "direct_post",
           options: TIKTOK_POST_MODES,
-          description: "Choose `direct_post` to publish to TikTok at the scheduled time, or `draft` to upload the media to the account's TikTok inbox as a draft the creator finishes and posts inside the TikTok app. Draft uploads ignore audience, interaction, and disclosure settings because the creator chooses those in the TikTok app, and they require the TikTok connection to include the video.upload scope."
+          description: "Choose `direct_post` to publish to TikTok at the scheduled time, or `draft` to send the media through TikTok's inbox notification flow so the creator can finish and post it in the app. Inbox uploads ignore audience, interaction, and disclosure settings because the creator chooses those in TikTok, and they require the connection to include the video.upload scope."
         },
         {
           id: "privacyLevel",

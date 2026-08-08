@@ -16,7 +16,7 @@ const SUPPORTED_PROTOCOL_VERSIONS = new Set(["2024-11-05", "2025-03-26", "2025-0
 const SCHEDULE_INPUT_SCHEMA = {
   type: "object",
   description:
-    "SocialClaw schedule document. Minimal shape: { timezone, posts: [{ account, name, description, publish_at, media_link? }] }. Campaign documents use { timezone, campaigns: [...] }. Per-post provider settings go in settings, e.g. TikTok drafts: settings: { tiktokPostMode: \"draft\" } uploads the media to the account's TikTok drafts (inbox) instead of publishing, and the creator finishes the post inside the TikTok app.",
+    "SocialClaw schedule document. Minimal shape: { timezone, posts: [{ account, name, description, publish_at, media_link? }] }. Campaign documents use { timezone, campaigns: [...] }. Per-post provider settings go in settings, e.g. TikTok inbox mode: settings: { tiktokPostMode: \"draft\" } sends the media to TikTok's inbox notification flow instead of publishing, and the creator finishes the post inside the TikTok app.",
   additionalProperties: true
 };
 
@@ -251,7 +251,7 @@ const TOOLS = [
       type: "object",
       properties: {
         runId: { type: "string" },
-        status: { type: "string", description: "e.g. scheduled, published, failed, canceled." },
+        status: { type: "string", description: "e.g. scheduled, published, action_required, failed, canceled." },
         account: { type: "string", description: "Account handle filter." },
         provider: { type: "string" },
         campaignId: { type: "string" },
