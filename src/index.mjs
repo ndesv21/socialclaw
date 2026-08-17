@@ -122,6 +122,21 @@ function printUsage() {
       `${PRIMARY_COMMAND} connections health [--provider <provider>] [--json]`,
       `${PRIMARY_COMMAND} jobs list [--status <status>] [--provider <provider>] [--account <handle>] [--run-id <id>] [--limit <n>] [--json]`
     ]),
+    renderHelpSection("INSTAGRAM ENGAGEMENT", [
+      `${PRIMARY_COMMAND} instagram media --account <handle|id> [--limit <n>] [--cursor <c>] [--json]`,
+      `${PRIMARY_COMMAND} instagram comments --account <handle|id> --media-id <id> [--limit <n>] [--cursor <c>] [--json]`,
+      `${PRIMARY_COMMAND} instagram insights --account <handle|id> --media-id <id> [--media-product-type FEED|REELS|STORY] [--json]`,
+      `${PRIMARY_COMMAND} instagram trend --account <handle|id> [--metric reach] [--days <n>] [--json]`,
+      `${PRIMARY_COMMAND} instagram profile --account <handle|id> [--json]`,
+      `${PRIMARY_COMMAND} instagram mentions [--limit <n>] [--json]`,
+      `${PRIMARY_COMMAND} instagram react --account <handle|id> --conversation-id <id> --message-id <id> --recipient-id <igsid> [--reaction love] [--json]`,
+      `${PRIMARY_COMMAND} instagram reply --account <handle|id> --comment-id <id> --message <text> [--json]`,
+      `${PRIMARY_COMMAND} instagram hide|unhide --account <handle|id> --comment-id <id> [--json]`,
+      `${PRIMARY_COMMAND} instagram delete-comment --account <handle|id> --comment-id <id> [--json]`,
+      `${PRIMARY_COMMAND} instagram dm --account <handle|id> [--limit <n>] [--cursor <c>] [--json]`,
+      `${PRIMARY_COMMAND} instagram thread --account <handle|id> --conversation-id <id> [--limit <n>] [--json]`,
+      `${PRIMARY_COMMAND} instagram send --account <handle|id> --conversation-id <id> --recipient-id <igsid> (--message <text> | --attachment-url <url> [--attachment-type image|video]) [--tag HUMAN_AGENT] [--json]`
+    ]),
     renderHelpSection("SUPPORTED PROVIDERS", [
       PROVIDER_CHOICES.replaceAll("|", " | ")
     ]),
@@ -1171,6 +1186,206 @@ async function main() {
       }
 
       throw new Error(`Unknown analytics subcommand: ${subcommand}`);
+    }
+
+    if (command === "instagram" || command === "ig") {
+      const subcommand = String(args._[1] || "").toLowerCase();
+      const auth = await withAuthConfig();
+
+      // Mentions are workspace-wide (no single account).
+      if (subcommand === "mentions") {
+        const query = args.limit ? `?limit=${encodeURIComponent(String(args.limit))}` : "";
+        const response = await apiRequest("GET", `/v1/instagram/mentions${query}`, auth);
+        if (args.json) exitJson(0, response);
+        console.table(
+          (response.mentions || []).map((m) => ({
+            username: m.username ? `@${m.username}` : "-",
+            text: (m.text || "").slice(0, 60),
+            mediaId: m.mediaId || "-",
+            when: m.createdTime
+          }))
+        );
+        return;
+      }
+
+      const account = requireArg(args, "account");
+      const base = `/v1/accounts/${encodeURIComponent(account)}/instagram`;
+
+      if (subcommand === "profile") {
+        const response = await apiRequest("GET", `${base}/profile`, auth);
+        if (args.json) exitJson(0, response);
+        const p = response.profile || {};
+        console.log(
+          [
+            `@${p.username || "-"}${p.name ? ` (${p.name})` : ""}`,
+            `Followers: ${p.followersCount ?? "-"} | Following: ${p.followsCount ?? "-"} | Posts: ${p.mediaCount ?? "-"}`,
+            p.biography ? `Bio: ${p.biography}` : ""
+          ].filter(Boolean).join("\n")
+        );
+        return;
+      }
+
+      if (subcommand === "insights") {
+        const mediaId = requireArg(args, "media-id");
+        const q = args["media-product-type"] ? `?mediaProductType=${encodeURIComponent(String(args["media-product-type"]))}` : "";
+        const response = await apiRequest("GET", `${base}/media/${encodeURIComponent(mediaId)}/insights${q}`, auth);
+        if (args.json) exitJson(0, response);
+        if (!response.supported) {
+          console.log(response.message || "Insights unavailable for this media");
+          return;
+        }
+        console.table([response.metrics]);
+        return;
+      }
+
+      if (subcommand === "trend") {
+        const query = new URLSearchParams();
+        if (args.metric) query.set("metric", String(args.metric));
+        if (args.days) query.set("days", String(args.days));
+        const suffix = query.toString() ? `?${query.toString()}` : "";
+        const response = await apiRequest("GET", `${base}/insights${suffix}`, auth);
+        if (args.json) exitJson(0, response);
+        if (!response.supported) {
+          console.log(response.message || "Account insights unavailable");
+          return;
+        }
+        console.log(`${response.metric} (last ${response.points.length}d) — total ${response.total}`);
+        console.table((response.points || []).map((p) => ({ date: p.date, [response.metric]: p.value })));
+        return;
+      }
+
+      if (subcommand === "react") {
+        const conversationId = requireArg(args, "conversation-id");
+        const messageId = requireArg(args, "message-id");
+        const recipientId = requireArg(args, "recipient-id");
+        const reaction = String(args.reaction || "love");
+        const response = await apiRequest("POST", `${base}/conversations/${encodeURIComponent(conversationId)}/messages/${encodeURIComponent(messageId)}/react`, {
+          ...auth,
+          body: { recipientId, reaction }
+        });
+        if (args.json) exitJson(0, response);
+        console.log(`Reacted ${reaction} to message ${messageId}`);
+        return;
+      }
+      const listQuery = () => {
+        const query = new URLSearchParams();
+        if (args.limit) query.set("limit", String(args.limit));
+        if (args.cursor) query.set("after", String(args.cursor));
+        return query.toString() ? `?${query.toString()}` : "";
+      };
+
+      if (subcommand === "media") {
+        const response = await apiRequest("GET", `${base}/media${listQuery()}`, auth);
+        if (args.json) exitJson(0, response);
+        console.table(
+          (response.data || []).map((m) => ({
+            id: m.id,
+            type: m.mediaType,
+            comments: m.commentsCount ?? "-",
+            likes: m.likeCount ?? "-",
+            caption: (m.caption || "").slice(0, 48),
+            permalink: m.permalink || "-",
+            timestamp: m.timestamp
+          }))
+        );
+        if (response.paging?.nextCursor) console.log(`\nNext page: --cursor ${response.paging.nextCursor}`);
+        return;
+      }
+
+      if (subcommand === "comments") {
+        const mediaId = requireArg(args, "media-id");
+        const response = await apiRequest("GET", `${base}/media/${encodeURIComponent(mediaId)}/comments${listQuery()}`, auth);
+        if (args.json) exitJson(0, response);
+        console.table(
+          (response.data || []).map((c) => ({
+            id: c.id,
+            username: c.username || "-",
+            likes: c.likeCount ?? "-",
+            hidden: c.hidden ?? "-",
+            replies: (c.replies || []).length,
+            text: (c.text || "").slice(0, 60),
+            timestamp: c.timestamp
+          }))
+        );
+        if (response.paging?.nextCursor) console.log(`\nNext page: --cursor ${response.paging.nextCursor}`);
+        return;
+      }
+
+      if (subcommand === "reply") {
+        const commentId = requireArg(args, "comment-id");
+        const message = requireArg(args, "message");
+        const response = await apiRequest("POST", `${base}/comments/${encodeURIComponent(commentId)}/replies`, { ...auth, body: { message } });
+        if (args.json) exitJson(0, response);
+        console.log(`Replied to comment ${commentId} (new comment id: ${response.id || "-"})`);
+        return;
+      }
+
+      if (subcommand === "hide" || subcommand === "unhide") {
+        const commentId = requireArg(args, "comment-id");
+        const hidden = subcommand === "hide";
+        const response = await apiRequest("POST", `${base}/comments/${encodeURIComponent(commentId)}/hide`, { ...auth, body: { hidden } });
+        if (args.json) exitJson(0, response);
+        console.log(`Comment ${commentId} ${hidden ? "hidden" : "unhidden"}`);
+        return;
+      }
+
+      if (subcommand === "delete-comment") {
+        const commentId = requireArg(args, "comment-id");
+        const response = await apiRequest("DELETE", `${base}/comments/${encodeURIComponent(commentId)}`, auth);
+        if (args.json) exitJson(0, response);
+        console.log(`Comment ${commentId} deleted`);
+        return;
+      }
+
+      if (subcommand === "dm") {
+        const response = await apiRequest("GET", `${base}/conversations${listQuery()}`, auth);
+        if (args.json) exitJson(0, response);
+        console.table(
+          (response.data || []).map((c) => ({
+            id: c.id,
+            with: c.participants?.map((p) => p.username || p.id).join(",") || "-",
+            updated: c.updatedTime,
+            lastMessage: (c.latestMessage?.text || "").slice(0, 60)
+          }))
+        );
+        if (response.paging?.nextCursor) console.log(`\nNext page: --cursor ${response.paging.nextCursor}`);
+        return;
+      }
+
+      if (subcommand === "thread") {
+        const conversationId = requireArg(args, "conversation-id");
+        const response = await apiRequest("GET", `${base}/conversations/${encodeURIComponent(conversationId)}/messages${listQuery()}`, auth);
+        if (args.json) exitJson(0, response);
+        console.table(
+          (response.data || []).map((m) => ({
+            id: m.id,
+            from: m.from?.username || m.from?.id || "-",
+            text: (m.text || "").slice(0, 60),
+            createdTime: m.createdTime
+          }))
+        );
+        if (response.paging?.nextCursor) console.log(`\nNext page: --cursor ${response.paging.nextCursor}`);
+        return;
+      }
+
+      if (subcommand === "send") {
+        const conversationId = requireArg(args, "conversation-id");
+        const recipientId = requireArg(args, "recipient-id");
+        const attachmentUrl = args["attachment-url"] ? String(args["attachment-url"]) : null;
+        const body = { recipientId };
+        if (attachmentUrl) {
+          body.attachment = { url: attachmentUrl, type: String(args["attachment-type"] || "image") };
+        } else {
+          body.text = requireArg(args, "message");
+        }
+        if (args.tag) body.tag = String(args.tag);
+        const response = await apiRequest("POST", `${base}/conversations/${encodeURIComponent(conversationId)}/messages`, { ...auth, body });
+        if (args.json) exitJson(0, response);
+        console.log(`Message sent to ${recipientId} (message id: ${response.messageId || "-"})`);
+        return;
+      }
+
+      throw new Error(`Unknown instagram subcommand: ${subcommand}`);
     }
 
     if (command === "runs") {

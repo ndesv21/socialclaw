@@ -78,6 +78,9 @@ const LINKEDIN_VIDEO_POLL_DELAY_MS = 2000;
 const INSTAGRAM_CAROUSEL_MEDIA_LIMIT = 10;
 const INSTAGRAM_CONTAINER_POLL_LIMIT = 20;
 const INSTAGRAM_CONTAINER_POLL_DELAY_MS = 3000;
+const INSTAGRAM_CONTAINER_STATUS_REQUEST_RETRIES = 2;
+const INSTAGRAM_PUBLISH_PRECONNECT_REQUEST_RETRIES = 2;
+const INSTAGRAM_PUBLISH_PRECONNECT_RETRY_DELAYS_MS = [1000, 3000];
 const INSTAGRAM_MEDIA_PREWARM_TIMEOUT_MS = 15_000;
 const INSTAGRAM_MEDIA_FETCH_RETRY_DELAYS_MS = [500, 1500];
 
@@ -89,9 +92,34 @@ function instagramMediaFetchRetryDelaysMs() {
   }
   return INSTAGRAM_MEDIA_FETCH_RETRY_DELAYS_MS;
 }
+
+function instagramContainerPollDelayMs() {
+  const rawTestDelayMs = process.env.SC_INSTAGRAM_CONTAINER_POLL_DELAY_MS;
+  const testDelayMs = Number(rawTestDelayMs);
+  if (rawTestDelayMs !== undefined && rawTestDelayMs !== "" && Number.isFinite(testDelayMs) && testDelayMs >= 0) {
+    return testDelayMs;
+  }
+  return INSTAGRAM_CONTAINER_POLL_DELAY_MS;
+}
+
+function instagramPublishPreconnectRetryDelaysMs() {
+  const rawTestDelayMs = process.env.SC_INSTAGRAM_PUBLISH_RETRY_DELAY_MS;
+  const testDelayMs = Number(rawTestDelayMs);
+  if (rawTestDelayMs !== undefined && rawTestDelayMs !== "" && Number.isFinite(testDelayMs) && testDelayMs >= 0) {
+    return Array(INSTAGRAM_PUBLISH_PRECONNECT_REQUEST_RETRIES).fill(testDelayMs);
+  }
+  return INSTAGRAM_PUBLISH_PRECONNECT_RETRY_DELAYS_MS;
+}
 const INSTAGRAM_CONTAINER_READY_STATUSES = new Set(["FINISHED"]);
 const INSTAGRAM_CONTAINER_FAILED_STATUSES = new Set(["ERROR", "EXPIRED"]);
 const FACEBOOK_PAGE_IMAGE_LIMIT = 10;
+// Facebook /photos rejects images over 10 MB with error_subcode 1366046
+// ("Your photos couldn't be uploaded. Photos should be less than 10 MB...").
+// Instagram image containers cap at 8 MB. Pull these through the media route's
+// `?maxbytes=` downscale so oversized originals still publish. Kept a touch
+// under each ceiling to leave headroom for the byte count Meta measures.
+const FACEBOOK_MAX_IMAGE_BYTES = Math.floor(9.8 * MB);
+const INSTAGRAM_MAX_IMAGE_BYTES = Math.floor(7.9 * MB);
 const FACEBOOK_VIDEO_UPLOAD_FALLBACK_CHUNK_BYTES = 4 * MB;
 const FACEBOOK_VIDEO_MEDIA_FETCH_TIMEOUT_MS = 180_000;
 const FACEBOOK_VIDEO_UPLOAD_START_TIMEOUT_MS = 30_000;
@@ -159,28 +187,64 @@ function isImageMedia(mediaLink) {
   return ext ? IMAGE_EXT.has(ext) : false;
 }
 
-function isGeneratedCampaignStepName(post) {
-  const name = String(post?.name || "").trim();
-  const campaignName = String(post?.campaignName || "").trim();
-  const sequencePosition = Number.isInteger(post?.sequencePosition)
-    ? post.sequencePosition
-    : Number.isInteger(post?.stepIndex)
-      ? post.stepIndex + 1
-      : null;
-
-  return Boolean(
-    name &&
-    campaignName &&
-    sequencePosition &&
-    name === `${campaignName} Step ${sequencePosition}`
-  );
+function providerTextLabel(provider) {
+  const labels = {
+    x: "X",
+    x_user: "X",
+    linkedin: "LinkedIn",
+    linkedin_page: "LinkedIn",
+    meta: "Facebook",
+    facebook: "Facebook",
+    instagram: "Instagram",
+    instagram_business: "Instagram",
+    tiktok: "TikTok",
+    telegram: "Telegram",
+    discord: "Discord",
+    snapchat: "Snapchat"
+  };
+  return labels[provider] || "This platform";
 }
 
+// Records a visible warning when we trim over-limit text instead of silently
+// dropping the tail (the old `.slice()` lost real content with no signal). The
+// warning rides along on the post and is surfaced on the published post record.
+function recordTextTrimWarning(post, { limit, originalLength }) {
+  if (!post || typeof post !== "object") {
+    return;
+  }
+  if (!Array.isArray(post.textTrimWarnings)) {
+    post.textTrimWarnings = [];
+  }
+  const dropped = Math.max(0, originalLength - limit);
+  const isStandardX = (post.provider === "x" || post.provider === "x_user") && limit <= 280;
+  post.textTrimWarnings.push({
+    code: "text_trimmed_to_platform_limit",
+    provider: post.provider || null,
+    limit,
+    originalLength,
+    droppedCharacters: dropped,
+    message:
+      `Post text was ${originalLength} characters but ${providerTextLabel(post.provider)} allows ${limit}; ` +
+      `the last ${dropped} character(s) were trimmed to fit.` +
+      (isStandardX
+        ? " Reconnect this account if it has X Premium to publish longer posts."
+        : "")
+  });
+}
+
+// Body-only providers publish the `description` as the post body. The campaign
+// step `name` is an organizational label (campaigns auto-generate one per step),
+// not post content — prepending it silently corrupted tweets and pushed real
+// content past the character limit, so it is no longer used as text here.
+// Title-bearing providers (Reddit, YouTube, WordPress) map `name` to their real
+// title field via createTitle() and are unaffected.
 function composePostText(post, { maxLength = null } = {}) {
-  const title = isGeneratedCampaignStepName(post) ? "" : post.name;
-  const chunks = [title, post.description].filter(Boolean).map((item) => String(item).trim());
-  const text = chunks.join("\n\n");
-  return maxLength ? text.slice(0, maxLength) : text;
+  const text = String(post?.description || "").trim();
+  if (!maxLength || weightedTextLength(text, post?.provider) <= maxLength) {
+    return text;
+  }
+  recordTextTrimWarning(post, { limit: maxLength, originalLength: text.length });
+  return text.slice(0, maxLength);
 }
 
 function composeTikTokPhotoText(post) {
@@ -266,18 +330,16 @@ async function assertTikTokPhotoPublishHealthy({ apiBaseUrl, accessToken, publis
 
     let payload;
     try {
-      payload =
-        unwrapTikTokPayload(
-          await requestJson(`${apiBaseUrl}/post/publish/status/fetch/`, {
-            method: "POST",
-            headers: {
-              authorization: `Bearer ${accessToken}`
-            },
-            json: {
-              publish_id: publishId
-            }
-          })
-        ) || {};
+      const detail = await requestJsonDetailed(`${apiBaseUrl}/post/publish/status/fetch/`, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${accessToken}`
+        },
+        json: {
+          publish_id: publishId
+        }
+      });
+      payload = unwrapTikTokPayload(detail.payload) || {};
     } catch {
       // A status-endpoint hiccup must not fail an already accepted publish.
       continue;
@@ -306,6 +368,24 @@ async function assertTikTokPhotoPublishHealthy({ apiBaseUrl, accessToken, publis
   }
 
   return lastPayload;
+}
+
+// Returns the provider-facing identity when TikTok reports a username change.
+// Scheduled posts target the immutable connected-account id, so both the public
+// handle and URL username can safely track the live provider account.
+function tikTokAccountUsernameUpdate(account, creatorUsername) {
+  const username = String(creatorUsername || "").trim();
+  if (!username) {
+    return null;
+  }
+  const handle = `tiktok:@${username.replace(/^@+/, "")}`;
+  if (
+    String(account?.providerUsername || "").trim().toLowerCase() === username.toLowerCase() &&
+    String(account?.handle || "").trim().toLowerCase() === handle.toLowerCase()
+  ) {
+    return null;
+  }
+  return { providerUsername: username, handle };
 }
 
 function tikTokPublicPostIdFromStatus(statusPayload) {
@@ -376,7 +456,10 @@ function buildProviderUrl(provider, account, providerPostId) {
   }
 
   if (provider === "tiktok") {
-    const username = String(account?.handle || "")
+    // providerUsername is the account's real TikTok username, which is what
+    // appears in profile and video URLs. The handle now follows that username;
+    // it remains a fallback for accounts connected before we recorded one.
+    const username = String(account?.providerUsername || account?.handle || "")
       .trim()
       .replace(/^tiktok:/, "")
       .replace(/^@+/, "");
@@ -1290,7 +1373,7 @@ export function validateProviderPayload(normalizedPost) {
     const text = composePostText({
       name: normalizedPost.name,
       description: normalizedPost.description
-    }, { maxLength: 2000 });
+    });
     if (!mediaLink && !text) {
       throw new AppError("Discord posts require text or one media asset", {
         code: "discord_text_or_media_required",
