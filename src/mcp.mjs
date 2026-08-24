@@ -376,6 +376,25 @@ const TOOLS = [
     }
   },
   {
+    name: "refresh_analytics",
+    annotations: { title: "Refresh analytics", openWorldHint: true },
+    description:
+      "Fetch fresh analytics for a published post from the provider and store a new snapshot, then return it. Supported providers: Instagram, TikTok, YouTube, Reddit, X, Pinterest, Snapchat (others return an unsupported snapshot). Call this before get_analytics when you need current numbers rather than the last stored snapshot.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        postId: { type: "string", description: "The published post id to refresh." },
+        window: { type: "string", description: "Optional analytics window, e.g. 7d (default lifetime)." }
+      },
+      required: ["postId"]
+    },
+    run: async (api, input) =>
+      api("POST", "/v1/analytics/refresh", {
+        postId: input.postId,
+        ...(input.window ? { window: input.window } : {})
+      })
+  },
+  {
     name: "workspace_usage",
     annotations: { title: "Workspace usage", readOnlyHint: true, openWorldHint: true },
     description: "Get workspace usage counters and plan entitlement consumption.",

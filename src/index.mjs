@@ -1340,13 +1340,23 @@ async function main() {
       if (subcommand === "dm") {
         const response = await apiRequest("GET", `${base}/conversations${listQuery()}`, auth);
         if (args.json) exitJson(0, response);
+        const selfId = response.account?.externalId;
         console.table(
-          (response.data || []).map((c) => ({
-            id: c.id,
-            with: c.participants?.map((p) => p.username || p.id).join(",") || "-",
-            updated: c.updatedTime,
-            lastMessage: (c.latestMessage?.text || "").slice(0, 60)
-          }))
+          (response.data || []).map((c) => {
+            // `counterpart` is the other person (the account itself is also a
+            // participant); fall back to excluding our own id from the list.
+            const other =
+              c.counterpart ||
+              (c.participants || []).find((p) => p && p.id && String(p.id) !== String(selfId)) ||
+              (c.participants || [])[0];
+            return {
+              id: c.id,
+              with: other?.username || other?.id || "-",
+              recipientId: other?.id || "-",
+              updated: c.updatedTime,
+              lastMessage: (c.latestMessage?.text || "").slice(0, 60)
+            };
+          })
         );
         if (response.paging?.nextCursor) console.log(`\nNext page: --cursor ${response.paging.nextCursor}`);
         return;
