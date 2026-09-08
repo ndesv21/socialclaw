@@ -5,7 +5,7 @@
 <h1 align="center">SocialClaw</h1>
 
 <p align="center">
-  Social media scheduling CLI and OpenClaw skill for AI agents posting to X, LinkedIn, Instagram, Facebook Pages, TikTok, Discord, Telegram, YouTube, Reddit, WordPress, and Pinterest.
+  Social media scheduling CLI and OpenClaw skill for AI agents posting to X, LinkedIn, Instagram, Threads, Facebook Pages, TikTok, Discord, Telegram, YouTube, Reddit, WordPress, and Pinterest.
 </p>
 
 <p align="center">
@@ -265,3 +265,7 @@ npm run sync:references
 - Users connect accounts inside the hosted SocialClaw dashboard.
 - The dashboard and API live at `https://getsocialclaw.com`.
 - The npm package ships the CLI, skill docs, Claude Code plugin, and command asset.
+
+### Threads availability
+
+Threads publishing support is prepared in this release and requires service activation after Meta app approval. Connect with `socialclaw accounts connect --provider threads --open`; supports text and image/video carousels up to 20 items. See [provider notes](skill/references/providers.md#threads) for current limits.

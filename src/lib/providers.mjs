@@ -4,6 +4,7 @@ import { AppError } from "./errors.mjs";
 
 const SUPPORTED_PROVIDERS = [
   "x",
+  "threads",
   "meta",
   "facebook",
   "instagram_business",
@@ -22,6 +23,7 @@ const SUPPORTED_PROVIDERS = [
 
 const PROVIDER_ALIASES = {
   x: "x",
+  threads: "threads",
   twitter: "x",
   "x-twitter": "x",
   meta: "meta",
@@ -119,7 +121,13 @@ const FACEBOOK_PAGE_IMAGE_LIMIT = 10;
 // `?maxbytes=` downscale so oversized originals still publish. Kept a touch
 // under each ceiling to leave headroom for the byte count Meta measures.
 const FACEBOOK_MAX_IMAGE_BYTES = Math.floor(9.8 * MB);
-const INSTAGRAM_MAX_IMAGE_BYTES = Math.floor(7.9 * MB);
+// Instagram downscales images wider than 1440px, and an oversized original
+// (e.g. a 2048px AI-generated image) can make the media container silently fail
+// with a bare status_code=ERROR. Cap the WIDTH only — height follows the aspect
+// ratio, so portrait Stories/Reels (1080×1920) must not be squeezed into a
+// square box. The height limit is a generous ceiling no valid IG image reaches.
+const INSTAGRAM_MAX_IMAGE_WIDTH = 1440;
+const INSTAGRAM_MAX_IMAGE_HEIGHT = 4096;
 const FACEBOOK_VIDEO_UPLOAD_FALLBACK_CHUNK_BYTES = 4 * MB;
 const FACEBOOK_VIDEO_MEDIA_FETCH_TIMEOUT_MS = 180_000;
 const FACEBOOK_VIDEO_UPLOAD_START_TIMEOUT_MS = 30_000;
@@ -138,6 +146,11 @@ const TIKTOK_MAX_VIDEO_BYTES = 4 * GB;
 const TIKTOK_MAX_PHOTO_COUNT = 35;
 const TIKTOK_PHOTO_TITLE_MAX = 90;
 const TIKTOK_PHOTO_DESCRIPTION_MAX = 4000;
+// TikTok photo posts reject any image larger than 1080×1920 with
+// `picture_size_check_failed`. We fit each image inside this box (aspect ratio
+// preserved, downscale-only) at delivery time.
+const TIKTOK_PHOTO_MAX_WIDTH = 1080;
+const TIKTOK_PHOTO_MAX_HEIGHT = 1920;
 const YOUTUBE_MAX_VIDEO_BYTES = 256 * GB;
 
 export function canonicalProvider(value) {
@@ -191,6 +204,7 @@ function providerTextLabel(provider) {
   const labels = {
     x: "X",
     x_user: "X",
+    threads: "Threads",
     linkedin: "LinkedIn",
     linkedin_page: "LinkedIn",
     meta: "Facebook",
@@ -254,15 +268,34 @@ function composeTikTokPhotoText(post) {
   };
 }
 
-// TikTok photo posts only accept JPEG and WebP source images. Other formats
-// (notably PNG) are accepted at init but fail asynchronously with
-// file_format_check_failed, so the post never appears. Route non-native formats
-// through the media server's `?format=jpeg` conversion, keeping the pulled URL
-// on the verified publishing domain.
-function tikTokPhotoImageUrl(asset) {
+// TikTok photo posts reject images larger than 1080×1920 (picture_size_check_failed)
+// and accept only JPEG/WebP sources (PNG passes init but fails asynchronously
+// with file_format_check_failed). For SocialClaw-hosted media, `?maxdim=` fits
+// the image inside the box (aspect ratio preserved, downscale-only) and always
+// returns JPEG, so one derivative satisfies both rules. Off-domain URLs we
+// cannot transform, so fall back to `?format=jpeg` for non-native formats.
+function tikTokPhotoImageUrl(asset, publicBaseUrl) {
   const url = String(asset?.url || "").trim();
   if (!url) {
     return url;
+  }
+  // A single asset whose url is several URLs joined together (e.g. a carousel
+  // packed into one comma-separated `media_link`) is unfetchable and fails the
+  // whole post with an opaque `photo_pull_failed`. Ingestion now splits these
+  // into separate assets, but guard here too so any legacy or out-of-band post
+  // fails fast with an actionable message instead of a mystery pull error.
+  if ((url.match(/https?:\/\//gi) || []).length > 1) {
+    throw new AppError(
+      "This photo has several image URLs packed into one — split them into separate images and try again.",
+      {
+        statusCode: 422,
+        code: "tiktok_photo_media_malformed",
+        retryable: false
+      }
+    );
+  }
+  if (isSocialClawMediaUrl(url, publicBaseUrl)) {
+    return constrainImageDimensionsUrl(url, TIKTOK_PHOTO_MAX_WIDTH, TIKTOK_PHOTO_MAX_HEIGHT, publicBaseUrl);
   }
   const mime = String(asset?.mime || "").toLowerCase();
   const isNativeFormat =
@@ -304,6 +337,116 @@ async function warmTikTokPhotoImageUrls(photoImages) {
       }
     })
   );
+}
+
+// Choose the URL TikTok's photo puller will fetch for each image.
+//
+// Video pulls (a raw stored URL) never hit `photo_pull_failed`; photo pulls that
+// go through the size-fit `?maxdim=` derivative do — its cold, cross-replica
+// generation can blow TikTok's short photo-pull timeout. So when we can confirm a
+// SocialClaw-hosted image is a JPEG already within 1080×1920, we hand TikTok the
+// RAW stored URL instead: the original object is already in shared storage, so
+// the pull is a plain fast read exactly like a video's. Anything we can't confirm
+// in-box (oversized, non-JPEG, unmeasurable, or off-domain) keeps the derivative,
+// which we warm so its shared-storage copy exists before the pull.
+// Kill switch SC_TIKTOK_PHOTO_PREWARM=0 restores the old always-derivative path.
+async function resolveTikTokPhotoImageUrls(assets, publicBaseUrl) {
+  if (!tikTokPhotoFlagEnabled("SC_TIKTOK_PHOTO_PREWARM")) {
+    return assets.map((asset) => tikTokPhotoImageUrl(asset, publicBaseUrl));
+  }
+  return Promise.all(assets.map((asset) => resolveTikTokPhotoImageUrl(asset, publicBaseUrl)));
+}
+
+// Minimal baseline/progressive JPEG dimension reader (SOI + SOF frame header).
+// Mirrors readJpegDimensions in asset-previews.mjs; inlined here so the provider
+// layer stays decoupled from that module's db/ffmpeg import chain. Returns null
+// for anything that isn't a parseable JPEG, which routes callers to the safe
+// derivative path.
+function readTikTokJpegDimensions(bytes) {
+  if (!bytes || bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) {
+    return null;
+  }
+  const len = bytes.length;
+  let offset = 2;
+  while (offset + 1 < len) {
+    if (bytes[offset] !== 0xff) {
+      offset += 1;
+      continue;
+    }
+    let marker = bytes[offset + 1];
+    while (marker === 0xff && offset + 2 < len) {
+      offset += 1;
+      marker = bytes[offset + 1];
+    }
+    offset += 2;
+    if (marker === 0xd8 || marker === 0xd9 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) {
+      continue;
+    }
+    if (offset + 1 >= len) {
+      break;
+    }
+    const segLen = (bytes[offset] << 8) | bytes[offset + 1];
+    if (segLen < 2) {
+      break;
+    }
+    const isFrameHeader =
+      marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc;
+    if (isFrameHeader) {
+      if (offset + 6 >= len) {
+        break;
+      }
+      const height = (bytes[offset + 3] << 8) | bytes[offset + 4];
+      const width = (bytes[offset + 5] << 8) | bytes[offset + 6];
+      return width > 0 && height > 0 ? { width, height } : null;
+    }
+    offset += segLen;
+  }
+  return null;
+}
+
+async function resolveTikTokPhotoImageUrl(asset, publicBaseUrl) {
+  const url = String(asset?.url || "").trim();
+  if (!url) {
+    return url;
+  }
+  // Malformed multi-URL guard, identical to the synchronous path.
+  if ((url.match(/https?:\/\//gi) || []).length > 1) {
+    throw new AppError(
+      "This photo has several image URLs packed into one — split them into separate images and try again.",
+      { statusCode: 422, code: "tiktok_photo_media_malformed", retryable: false }
+    );
+  }
+  // Off-domain media can't be measured or transformed — keep the native-format
+  // / `?format=jpeg` behaviour, warmed exactly as before.
+  if (!isSocialClawMediaUrl(url, publicBaseUrl)) {
+    const resolved = tikTokPhotoImageUrl(asset, publicBaseUrl);
+    await warmTikTokPhotoImageUrls([resolved]);
+    return resolved;
+  }
+
+  // Fetch the raw stored image once: this both warms it and lets us measure it.
+  let bytes = null;
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(TIKTOK_PHOTO_PREWARM_TIMEOUT_MS) });
+    if (response.ok) {
+      bytes = Buffer.from(await response.arrayBuffer());
+    }
+  } catch {
+    // Unreachable or slow — fall through to the size-capped derivative.
+  }
+
+  const dims = bytes ? readTikTokJpegDimensions(bytes) : null;
+  if (dims && dims.width <= TIKTOK_PHOTO_MAX_WIDTH && dims.height <= TIKTOK_PHOTO_MAX_HEIGHT) {
+    // Confirmed in-box JPEG: TikTok pulls the raw stored file (already in shared
+    // storage — no derivative generation, as reliable as a video pull).
+    return url;
+  }
+
+  // Oversized, non-JPEG, or unmeasurable: use the size-capped derivative and warm
+  // it so every replica can serve it as a plain read.
+  const derivative = constrainImageDimensionsUrl(url, TIKTOK_PHOTO_MAX_WIDTH, TIKTOK_PHOTO_MAX_HEIGHT, publicBaseUrl);
+  await warmTikTokPhotoImageUrls([derivative]);
+  return derivative;
 }
 
 function tikTokPhotoStatusPollDelaysMs() {
@@ -837,6 +980,21 @@ export function validateProviderPayload(normalizedPost) {
   const assetCount = mediaUrls.length;
 
   assertSupportedProvider(provider);
+
+  if (provider === "threads") {
+    if (interactionType !== "post") {
+      throw new AppError("Threads currently supports posts only", { statusCode: 422, code: "threads_interaction_unsupported" });
+    }
+    if (assetCount > 20) {
+      throw new AppError("Threads supports up to 20 media items", { statusCode: 422, code: "threads_media_limit_exceeded" });
+    }
+    if (mediaKinds.includes("other")) {
+      throw new AppError("Threads supports images and videos", { statusCode: 422, code: "threads_media_unsupported" });
+    }
+    if (!assetCount && !String(normalizedPost.description || "").trim()) {
+      throw new AppError("Threads needs text or media", { statusCode: 422, code: "threads_content_required" });
+    }
+  }
 
   if (interactionType === "comment") {
     throw new AppError(`${provider} does not support comment publishing in SocialClaw yet`, {

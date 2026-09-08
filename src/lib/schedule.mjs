@@ -158,23 +158,51 @@ function parseInteractionType(value) {
   });
 }
 
+// A single `media_link` / asset url field is sometimes handed a whole carousel
+// as one comma- (or newline-) joined string, e.g. "a.jpg,b.jpg,c.jpg". Stored
+// verbatim, that one "url" resolves to nothing (404) and the provider pull
+// fails the entire post (TikTok: `photo_pull_failed`). Expand such a field into
+// its separate URLs so the caller gets the carousel they intended.
+//
+// Only split when EVERY segment is itself a complete http(s) URL — a lone URL
+// that merely carries a comma inside a query string (e.g. `?ids=1,2`) has
+// segments that are not URLs, so it is left exactly as-is. Returns [] for empty.
+function splitMediaUrls(raw) {
+  const value = String(raw || "").trim();
+  if (!value) {
+    return [];
+  }
+  const parts = value
+    .split(/[,\n\r]+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (parts.length > 1 && parts.every((part) => /^https?:\/\//i.test(part))) {
+    return parts;
+  }
+  return [value];
+}
+
 function normalizeAssets(post) {
   const explicitMediaLink = post.media_link || post.mediaLink || null;
   const rawAssets = Array.isArray(post.assets) ? post.assets : [];
-  const assets = rawAssets.map((item, index) => {
+  const assets = [];
+  rawAssets.forEach((item, index) => {
     if (typeof item === "string") {
-      const url = item.trim();
-      if (!url) {
+      const raw = item.trim();
+      if (!raw) {
         throw new AppError(`assets[${index}] must be a non-empty URL`, {
           code: "asset_url_required",
           statusCode: 422
         });
       }
-      return {
-        id: `asset_${index + 1}`,
-        url,
-        managed: false
-      };
+      for (const url of splitMediaUrls(raw)) {
+        assets.push({
+          id: `asset_${assets.length + 1}`,
+          url,
+          managed: false
+        });
+      }
+      return;
     }
 
     if (!item || typeof item !== "object" || Array.isArray(item)) {
@@ -184,42 +212,54 @@ function normalizeAssets(post) {
       });
     }
 
-    const url = String(item.url || item.media_link || item.mediaLink || "").trim();
-    if (!url) {
+    const rawUrl = String(item.url || item.media_link || item.mediaLink || "").trim();
+    if (!rawUrl) {
       throw new AppError(`assets[${index}] is missing a URL`, {
         code: "asset_url_required",
         statusCode: 422
       });
     }
 
-    return {
-      id: String(item.id || `asset_${index + 1}`).trim(),
-      url,
-      managed: Boolean(item.managed),
-      originalFilename: item.originalFilename ? String(item.originalFilename).trim() : null,
-      mime: item.mime ? String(item.mime).trim() : null,
-      kind: item.kind ? String(item.kind).trim().toLowerCase() : null,
-      size: Number.isFinite(Number(item.size)) ? Number(item.size) : null,
-      duration: Number.isFinite(Number(item.duration)) ? Number(item.duration) : null,
-      width: Number.isFinite(Number(item.width)) ? Number(item.width) : null,
-      height: Number.isFinite(Number(item.height)) ? Number(item.height) : null,
-      altText: item.altText ? String(item.altText).trim() : null
-    };
+    const urls = splitMediaUrls(rawUrl);
+    // Metadata on the object (mime, size, altText, …) describes a single file.
+    // When a caller packed several URLs into one entry we can only trust that
+    // metadata for a lone URL, so drop it on a split rather than misapply it.
+    const single = urls.length === 1;
+    for (const url of urls) {
+      assets.push({
+        id: single ? String(item.id || `asset_${assets.length + 1}`).trim() : `asset_${assets.length + 1}`,
+        url,
+        managed: Boolean(item.managed),
+        originalFilename: single && item.originalFilename ? String(item.originalFilename).trim() : null,
+        mime: single && item.mime ? String(item.mime).trim() : null,
+        kind: single && item.kind ? String(item.kind).trim().toLowerCase() : null,
+        size: single && Number.isFinite(Number(item.size)) ? Number(item.size) : null,
+        duration: single && Number.isFinite(Number(item.duration)) ? Number(item.duration) : null,
+        width: single && Number.isFinite(Number(item.width)) ? Number(item.width) : null,
+        height: single && Number.isFinite(Number(item.height)) ? Number(item.height) : null,
+        altText: single && item.altText ? String(item.altText).trim() : null
+      });
+    }
   });
 
-  if (explicitMediaLink && assets.length > 0 && assets[0].url !== explicitMediaLink) {
-    throw new AppError("media_link must match assets[0].url when both are provided", {
-      code: "asset_media_conflict",
-      statusCode: 422
-    });
+  if (explicitMediaLink && assets.length > 0) {
+    const firstMediaUrl = splitMediaUrls(explicitMediaLink)[0] || explicitMediaLink;
+    if (assets[0].url !== firstMediaUrl && assets[0].url !== explicitMediaLink) {
+      throw new AppError("media_link must match assets[0].url when both are provided", {
+        code: "asset_media_conflict",
+        statusCode: 422
+      });
+    }
   }
 
   if (explicitMediaLink && assets.length === 0) {
-    assets.push({
-      id: "asset_1",
-      url: explicitMediaLink,
-      managed: false
-    });
+    for (const url of splitMediaUrls(explicitMediaLink)) {
+      assets.push({
+        id: `asset_${assets.length + 1}`,
+        url,
+        managed: false
+      });
+    }
   }
 
   return {

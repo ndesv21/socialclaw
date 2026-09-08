@@ -324,3 +324,7 @@ To post the same content to multiple accounts, add one entry per account in the 
 ```
 
 Use one image asset for a standard pin, one video asset for a video pin, or multiple image assets for a multi-image pin.
+
+## Threads publishing
+
+Connect `threads` using the regular browser OAuth workflow, inspect capabilities, and create a post targeting the returned `threads:<id>` handle. Put public post text in `description`; `name` remains internal. Use normal schedule validation and submit commands for text, images, video, or a mixed carousel. A campaign may contain independent Threads posts; reply chains are not supported.

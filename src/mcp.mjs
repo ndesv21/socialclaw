@@ -104,7 +104,7 @@ const TOOLS = [
     name: "list_accounts",
     annotations: { title: "List accounts", readOnlyHint: true, openWorldHint: true },
     description:
-      "List connected social accounts in the SocialClaw workspace. Optionally filter by provider (x, facebook, instagram_business, instagram, linkedin, linkedin_page, pinterest, tiktok, telegram, discord, youtube, reddit, wordpress).",
+      "List connected social accounts in the SocialClaw workspace. Optionally filter by provider (x, facebook, instagram_business, instagram, threads, linkedin, linkedin_page, pinterest, tiktok, telegram, discord, youtube, reddit, wordpress).",
     inputSchema: {
       type: "object",
       properties: {

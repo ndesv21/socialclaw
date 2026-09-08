@@ -239,3 +239,12 @@ socialclaw usage --json
 - It is a client for the hosted service, not a standalone scheduler.
 - Telegram is a manual bot-token provider, not an OAuth browser redirect.
 - Pinterest product, collection, and idea surfaces should be treated as capability-gated or beta until account capabilities/actions confirm them.
+
+### Connect Threads (when enabled)
+
+```sh
+socialclaw accounts connect --provider threads --open
+socialclaw accounts list --provider threads
+```
+
+HTTP fallback: `POST /v1/connections/start` with `{"provider":"threads"}` and the workspace bearer key. Open the authorization URL, poll connection status, then use the connected account handle with the normal validation/scheduling flow.

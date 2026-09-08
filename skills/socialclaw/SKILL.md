@@ -1,6 +1,6 @@
 ---
 name: socialclaw
-description: Social media scheduling and publishing via SocialClaw. Use when connecting accounts, scheduling posts, uploading media, or managing campaigns on X, LinkedIn, Instagram, Facebook, TikTok, Discord, Telegram, YouTube, Reddit, WordPress, or Pinterest.
+description: Social media scheduling and publishing via SocialClaw. Use when connecting accounts, scheduling posts, uploading media, or managing campaigns on X, LinkedIn, Instagram, Threads, Facebook, TikTok, Discord, Telegram, YouTube, Reddit, WordPress, or Pinterest.
 ---
 
 # SocialClaw
@@ -343,3 +343,5 @@ curl -sS \
 - For full HTTP API recipes and schedule formats, read [references/workflows.md](references/workflows.md).
 - For the optional CLI and command examples, read [references/cli.md](references/cli.md).
 - For provider and account-type caveats, read [references/providers.md](references/providers.md).
+
+Threads connections require the service to have Threads enabled. Use `provider: "threads"` and inspect account capabilities; a `provider_not_configured` response means availability is pending. Threads currently supports posts, not replies, inbox, or analytics.

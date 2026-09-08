@@ -1,6 +1,6 @@
 ---
 name: socialclaw
-description: Schedule and publish social media posts across X, LinkedIn, Instagram, Facebook Pages, TikTok, YouTube, Reddit, Pinterest, WordPress, Discord, and Telegram. Use when the user wants to post, schedule, or publish to social media, or check post status and analytics.
+description: Schedule and publish social media posts across X, LinkedIn, Instagram, Threads, Facebook Pages, TikTok, YouTube, Reddit, Pinterest, WordPress, Discord, and Telegram. Use when the user wants to post, schedule, or publish to social media, or check post status and analytics.
 version: "1.0.0"
 license: MIT
 compatibility: Requires a SocialClaw workspace API key and at least one connected social account. Networks are connected once at https://getsocialclaw.com/dashboard.
@@ -94,3 +94,5 @@ SocialClaw also exposes the same capabilities as tools:
 - Each network has its own media type, text length, and account-model rules; the capabilities endpoint reports them.
 - Publishing requires an active SocialClaw plan; listing tools/accounts works on a trial key.
 - Accounts are connected once in the SocialClaw dashboard; this skill does not perform per-network OAuth.
+
+Threads connections require the service to have Threads enabled. Use `provider: "threads"` and inspect account capabilities; a `provider_not_configured` response means availability is pending. Threads currently supports posts, not replies, inbox, or analytics.

@@ -98,3 +98,14 @@
 
 - `meta` exists for older workspaces only.
 - New workspaces should prefer explicit `facebook` and `instagram_business`.
+
+## Threads
+
+- Use `threads` for a Threads profile via its own OAuth flow. Instagram/Facebook connections do not grant Threads access.
+- Availability requires the service's Threads app approval and activation. If connect returns `provider_not_configured`, tell the user it is not available yet.
+- Connect with `socialclaw accounts connect --provider threads --open`; use the returned `threads:<id>` account handle.
+- Text is `description` (up to 500 characters). `name` is an internal label.
+- Optional image/video media, including mixed carousels up to 20 items. URLs must be publicly accessible and files must meet Threads' media restrictions.
+- Optional `settings.replyControl`: `everyone`, `accounts_you_follow`, or `mentioned_only`.
+- Replies, inbox, analytics and deleting published Threads posts are not supported yet. Inspect account capabilities before promising a workflow.
+- `threads_publish_uncertain` means check the actual profile before retrying; a post may already exist.

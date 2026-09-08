@@ -314,6 +314,8 @@ export function inferPublishTarget(accountOrDescriptor) {
     };
   }
 
+  if (provider === "threads" || handle.startsWith("threads:")) return { provider: "threads", accountType: "threads_user" };
+
   if (provider === "x" || handle.startsWith("x:@")) {
     return { provider: "x", accountType: "x_user" };
   }
@@ -405,6 +407,11 @@ export function inferPublishTarget(accountOrDescriptor) {
 
 export function describePublishSettingsForAccount(accountOrDescriptor) {
   const target = inferPublishTarget(accountOrDescriptor);
+  if (target.provider === "threads") return {
+    supported: true, target,
+    fields: [{ id: "replyControl", type: "enum", required: false, default: "everyone", options: ["everyone", "accounts_you_follow", "mentioned_only"], description: "Who can reply to this Threads post." }],
+    discovery: { publishShape: "text_image_video_or_carousel", mediaDelivery: "provider_fetches_remote_media" }
+  };
 
   if (target.provider === "x" && target.accountType === "x_user") {
     return {
@@ -1052,6 +1059,13 @@ export function describePublishSettingsForAccount(accountOrDescriptor) {
 export function validatePublishSettingsForTarget({ provider, account, settings, mediaLink }) {
   const normalizedSettings = normalizeSettingsInput(settings);
   const target = inferPublishTarget({ provider, account });
+
+  if (target.provider === "threads") {
+    assertNoUnknownSettings(normalizedSettings, ["replyControl"], "threads_settings_unsupported");
+    const replyControl = normalizedSettings.replyControl || "everyone";
+    if (!["everyone", "accounts_you_follow", "mentioned_only"].includes(replyControl)) throw new AppError("Invalid Threads replyControl", { statusCode: 422, code: "threads_reply_control_invalid" });
+    return { replyControl };
+  }
 
   if (target.provider === "x" && target.accountType === "x_user") {
     assertNoUnknownSettings(normalizedSettings, ["replyControl"], "x_settings_unsupported");

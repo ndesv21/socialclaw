@@ -1,11 +1,11 @@
 ---
 name: socialclaw
-description: Use when a user wants social media scheduling and publishing for AI agents on X, LinkedIn, Instagram, Facebook Pages, TikTok, Discord, Telegram, YouTube, Reddit, WordPress, and Pinterest through SocialClaw.
+description: Use when a user wants social media scheduling and publishing for AI agents on X, LinkedIn, Instagram, Threads, Facebook Pages, TikTok, Discord, Telegram, YouTube, Reddit, WordPress, and Pinterest through SocialClaw.
 homepage: https://getsocialclaw.com
 metadata: {"openclaw":{"homepage":"https://getsocialclaw.com","primaryEnv":"SC_API_KEY","requires":{"env":["SC_API_KEY"]},"install":[{"id":"npm","kind":"node","package":"socialclaw","bins":["socialclaw","social"],"label":"Install SocialClaw CLI (npm)"}]}}
 ---
 
-# SocialClaw is a social media scheduling skill for AI agents posting to X, LinkedIn, Instagram, Facebook Pages, TikTok, Discord, Telegram, YouTube, Reddit, WordPress, and Pinterest
+# SocialClaw is a social media scheduling skill for AI agents posting to X, LinkedIn, Instagram, Threads, Facebook Pages, TikTok, Discord, Telegram, YouTube, Reddit, WordPress, and Pinterest
 
 SocialClaw is a workspace-scoped social publishing service at `https://getsocialclaw.com`.
 
@@ -272,3 +272,5 @@ For Discord:
 - For HTTP fallback recipes, read [references/workflows.md](./references/workflows.md).
 - For the optional CLI and command examples, read [references/cli.md](./references/cli.md).
 - For provider/account-type caveats, read [references/providers.md](./references/providers.md).
+
+Threads connections require the service to have Threads enabled. Use `provider: "threads"` and inspect account capabilities; a `provider_not_configured` response means availability is pending. Threads currently supports posts, not replies, inbox, or analytics.
