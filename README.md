@@ -27,8 +27,12 @@
 This repo is the public home for:
 - the `socialclaw` npm CLI
 - the OpenClaw and ClawHub skill bundle
-- the Claude Code plugin and `/socialclaw` command asset
+- the Claude plugin with hosted MCP/OAuth and the optional `/socialclaw` command asset
 - public usage docs, provider notes, and schedule examples
+
+## Claude plugin
+
+For Claude, use the focused bundle in [`plugins/socialclaw/`](./plugins/socialclaw). It connects to the hosted MCP server through OAuth and includes the current publishing, analytics, and Instagram workflow skill. No CLI installation or API-key environment variable is required. See [submission steps](./docs/claude-directory-submission.md) for the maintainer workflow.
 
 ## Install
 
@@ -145,8 +149,9 @@ socialclaw usage --json
 
 ### MCP server
 
-The package ships a Model Context Protocol server. Any MCP client (Claude Code, Claude Desktop, Cursor, and others) gets 17 validation-first publishing tools over your connected workspace accounts: list accounts and capabilities, upload media, validate and preview schedules, apply with idempotency keys, publish drafts, and inspect posts, attempts, runs, analytics, usage, and health.
+The hosted MCP server at `https://getsocialclaw.com/mcp` supports OAuth and advertised 34 tools on October 12, 2026, including media uploads, scheduling, delivery checks, analytics, and Instagram comments and messages. Its live schemas are authoritative. Use the hosted connection for the Claude plugin.
 
+The npm package also ships a separate stdio MCP server for local clients. It exposes a smaller tool set and uses a workspace API key. The examples below are for that optional local server.
 Claude Code:
 
 ```bash
@@ -171,7 +176,7 @@ Claude Desktop, Cursor, and other JSON-configured clients:
 }
 ```
 
-If you have already run `socialclaw login --api-key <key>`, the server reuses the saved credentials and the `env` block is unnecessary. See [getsocialclaw.com/mcp](https://getsocialclaw.com/mcp) for the full tool list.
+If you have already run `socialclaw login --api-key <key>`, the server reuses the saved credentials and the `env` block is unnecessary. See the [hosted MCP reference](https://getsocialclaw.com/docs/mcp) for the current hosted tools; do not assume the local stdio server has every hosted tool.
 
 ### Claude Code plugin
 
@@ -182,7 +187,7 @@ Install the packaged Claude Code plugin from inside Claude Code:
 /plugin install socialclaw@socialclaw
 ```
 
-This installs the marketplace plugin from [`skills/socialclaw/`](./skills/socialclaw) with metadata from [`.claude-plugin/`](./.claude-plugin). It is the cleanest option if you want Claude to auto-invoke SocialClaw when a user asks to connect accounts, upload media, schedule posts, inspect delivery, or check analytics.
+This installs the focused marketplace plugin from [`plugins/socialclaw/`](./plugins/socialclaw), including its OAuth MCP connection and Claude skill. It is the cleanest option if you want Claude to auto-invoke SocialClaw when a user asks to connect accounts, upload media, schedule posts, inspect delivery, or check analytics.
 
 ### Claude slash command and skill file
 
@@ -219,9 +224,9 @@ That makes SocialClaw a good fit for:
 - OpenClaw and ClawHub skills
 - custom internal agents that need one stable publishing surface for social channels
 
-In practice, all of these share the same model:
+In practice, these integrations share the same model:
 - connect customer accounts inside SocialClaw
-- create a workspace API key
+- authenticate the hosted Claude connector with OAuth, or use a workspace API key for CLI/API clients
 - upload media, validate, apply, inspect, analyze, and optionally delete supported posts through the hosted service
 
 ## Supported providers
@@ -239,6 +244,7 @@ In practice, all of these share the same model:
 - YouTube
 - Reddit
 - WordPress
+- Threads (subject to connected-account capabilities)
 
 Pinterest is exposed as the `pinterest` provider in the public CLI and skill bundle. Its main publish target is board-centric, with support for standard pins, video pins, multi-image pins, board creation and section or catalog discovery, plus pin and account analytics. Product, collection, and idea surfaces should be treated as capability-gated or beta rather than assumed for every workspace.
 
@@ -269,3 +275,7 @@ npm run sync:references
 ### Threads availability
 
 Threads publishing support is prepared in this release and requires service activation after Meta app approval. Connect with `socialclaw accounts connect --provider threads --open`; supports text and image/video carousels up to 20 items. See [provider notes](skill/references/providers.md#threads) for current limits.
+
+## Privacy and support
+
+Read the [Privacy Policy](https://getsocialclaw.com/privacy) and [Terms of Service](https://getsocialclaw.com/terms). For help, [contact SocialClaw](https://getsocialclaw.com/contact) or email support@getsocialclaw.com.

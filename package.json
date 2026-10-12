@@ -1,6 +1,6 @@
 {
   "name": "socialclaw",
-  "version": "0.1.23",
+  "version": "0.1.24",
   "description": "Social media scheduling CLI and OpenClaw skill for AI agents posting to X, LinkedIn, Instagram, Threads, Facebook Pages, TikTok, Discord, Telegram, YouTube, Reddit, WordPress, and Pinterest.",
   "type": "module",
   "license": "MIT",
@@ -61,7 +61,10 @@
     "skills",
     ".claude-plugin",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    ".mcp.json",
+    "plugins/socialclaw",
+    ".github/readme/logo.png"
   ],
   "engines": {
     "node": ">=20"
@@ -72,7 +75,8 @@
     "publish:package": "npm publish --access public",
     "sync:version": "node tools/sync-plugin-version.mjs",
     "sync:references": "node tools/sync-references.mjs",
-    "version": "node tools/sync-plugin-version.mjs && node tools/sync-references.mjs && git add .claude-plugin/ skills/socialclaw/references/"
+    "version": "node tools/sync-plugin-version.mjs && node tools/sync-references.mjs && git add .claude-plugin/ skills/socialclaw/references/ && node tools/build-claude-plugin.mjs && git add plugins/socialclaw/",
+    "build:claude-plugin": "node tools/build-claude-plugin.mjs"
   },
   "publishConfig": {
     "access": "public"

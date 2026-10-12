@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "socialclaw": {
+      "type": "http",
+      "url": "https://getsocialclaw.com/mcp"
+    }
+  }
+}
