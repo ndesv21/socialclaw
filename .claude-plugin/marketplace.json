@@ -5,13 +5,13 @@
     "email": "support@getsocialclaw.com"
   },
   "metadata": {
-    "description": "Schedule and publish social posts, track delivery and analytics, and manage Instagram comments and messages through SocialClaw."
+    "description": "Schedule and publish social media posts to X, Instagram, Threads, Facebook Pages, LinkedIn, TikTok, YouTube, Pinterest, Reddit, WordPress, Discord, and Telegram."
   },
   "plugins": [
     {
       "name": "socialclaw",
       "source": "./plugins/socialclaw",
-      "description": "Schedule and publish social posts, track delivery and analytics, and manage Instagram comments and messages through SocialClaw.",
+      "description": "Schedule and publish social media posts to X, Instagram, Threads, Facebook Pages, LinkedIn, TikTok, YouTube, Pinterest, Reddit, WordPress, Discord, and Telegram.",
       "version": "0.1.24",
       "author": {
         "name": "SocialClaw"
